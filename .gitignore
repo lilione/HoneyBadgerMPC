@@ -143,3 +143,6 @@ sharedata/
 .ci/deploy_key.pub
 # Intellij
 .idea/
+
+*~
+apps/fabric/test/data/
