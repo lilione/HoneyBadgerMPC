@@ -16,18 +16,18 @@ async def main(config_file):
     servers = []
     for i in range(n):
         server_config = config["servers"][i]
-        server = Server(server_config["id"], sends[i], recvs[i], server_config["host"], server_config["port"])
+        server = Server(n, t, server_config["id"], sends[i], recvs[i], server_config["host"], server_config["port"])
         servers.append(server)
 
     tasks = []
     for server in servers:
         print(server)
-        task = asyncio.ensure_future(server.offline_inputmasks(n, t))
-        tasks.append(task)
+        tasks.append(asyncio.ensure_future(server.gen_inputmasks()))
+        tasks.append(asyncio.ensure_future(server.client_req_inputmask()))
 
     for task in tasks:
         await task
 
 if __name__ == "__main__":
-    config_file = "apps/fabric/test/server.toml"
+    config_file = "apps/fabric/test/config.toml"
     asyncio.run(main(config_file))
