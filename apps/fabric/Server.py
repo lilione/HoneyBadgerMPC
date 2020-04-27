@@ -11,16 +11,24 @@ from honeybadgermpc.utils.misc import wrap_send, subscribe_recv
 field = GF(Subgroup.BLS12_381)
 
 class Server:
-    def __init__(self, n, t, myid, send, recv, http_host, http_port):
+    def __init__(self, n, t, node_id, send, recv, host, node_port, client_req_port):
         self.n = n
         self.t = t
-        self.myid = myid
-        self._subscribe_task, subscribe = subscribe_recv(recv)
-        def get_send_recv(tag):
-            return wrap_send(tag, send), subscribe(tag)
-        self.get_send_recv = get_send_recv
-        self.http_host = http_host
-        self.http_port = http_port
+        self.node_id = node_id
+
+        # self._subscribe_task, subscribe = subscribe_recv(recv)
+        # def get_send_recv(tag):
+        #     return wrap_send(tag, send), subscribe(tag)
+        # self.get_send_recv = get_send_recv
+        from honeybadgermpc.utils.misc import _get_pubsub_channel
+
+        self.subscribe_task, self.channel = _get_pubsub_channel(send, recv)
+        self.get_send_recv = self.channel
+        
+        self.host = host
+        self.node_port = node_port
+        self.client_req_port = client_req_port
+        
         self.inputmasks = []
         self.used_inputmasks = 0
 
@@ -36,13 +44,13 @@ class Server:
 
             # Run Randousha
             logging.info(
-                f"[{self.myid}] len(inputmasks): {len(self.inputmasks)} \
+                f"[{self.node_id}] len(inputmasks): {len(self.inputmasks)} \
                 used_inputmasks: {self.used_inputmasks} \
                 target: {target} Initiating Randousha {k * (self.n - 2 * self.t)}"
             )
             send, recv = self.get_send_recv(f"preproc:inputmasks {preproc_round}")
             # start_time = time.time()
-            rs_t, rs_2t = zip(*await randousha(self.n, self.t, k, self.myid, send, recv, field))
+            rs_t, rs_2t = zip(*await randousha(self.n, self.t, k, self.node_id, send, recv, field))
             assert len(rs_t) == len(rs_2t) == k * (self.n - 2 * self.t)
 
             # Note: here we just discard the rs_2t
@@ -66,8 +74,8 @@ class Server:
             mask_idx = int(request.match_info.get("mask_idx"))
             data = {
                 "inputmask": self.inputmasks[mask_idx],
-                "server_id": self.myid,
-                "server_port": self.http_port,
+                "server_id": self.node_id,
+                "server_port": self.client_req_port,
             }
             return web.json_response(data)
 
@@ -75,9 +83,9 @@ class Server:
         app.add_routes(routes)
         runner = web.AppRunner(app)
         await runner.setup()
-        site = web.TCPSite(runner, host=self.http_host, port=self.http_port)
+        site = web.TCPSite(runner, host=self.host, port=self.client_req_port)
         await site.start()
-        logging.info(f"======= Serving on http://{self.http_host}:{self.http_port}/ ======")
+        logging.info(f"======= Serving on http://{self.host}:{self.client_req_port}/ ======")
         # pause here for very long time by serving HTTP requests and
         # waiting for keyboard interruption
         await asyncio.sleep(100 * 3600)

@@ -18,7 +18,7 @@ class Client:
         for server in self.servers:
             print(server)
             host = server["host"]
-            port = server["port"]
+            port = server["client_req_port"]
             logging.info(
                 f"query server {host}:{port} "
                 f"for its share of input mask with id {mask_idx}"

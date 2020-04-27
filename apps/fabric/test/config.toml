@@ -7,20 +7,28 @@ t = 1
 # MPC servers
 [[servers]]
 id = 0
+#host = "peer0.org1.example.com"
 host = "127.0.0.1"
-port = 8080
+nc_port = 7000
+client_req_port = 8080
 
 [[servers]]
 id = 1
+#host = "peer1.org1.example.com"
 host = "127.0.0.1"
-port = 8081
+nc_port = 7001
+client_req_port = 8081
 
 [[servers]]
 id = 2
+#host = "peer0.org2.example.com"
 host = "127.0.0.1"
-port = 8082
+nc_port = 7002
+client_req_port = 8082
 
 [[servers]]
 id = 3
+#host = "peer1.org2.example.com"
 host = "127.0.0.1"
-port = 8083
+nc_port = 7003
+client_req_port = 8083

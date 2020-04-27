@@ -144,4 +144,4 @@ sharedata/
 # Intellij
 .idea/
 
-apps/fabric/test/data/
+apps/fabric/test/log/
