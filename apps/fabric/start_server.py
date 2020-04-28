@@ -23,7 +23,7 @@ async def main(node_id, config_file):
     await nc._setup()
 
     server_config = config["servers"][node_id]
-    server = Server(n, t, node_id, nc.send, nc.recv, server_config["host"], server_config["nc_port"], server_config["client_req_port"])
+    server = Server(n, t, node_id, nc.send, nc.recv, server_config["host"], server_config["nc_port"], server_config["http_port"])
 
     tasks = []
     tasks.append(asyncio.ensure_future(server.gen_inputmasks()))
@@ -34,5 +34,5 @@ async def main(node_id, config_file):
 
 if __name__ == "__main__":
     node_id = int(sys.argv[1])
-    config_file = "apps/fabric/test/config.toml"
+    config_file = "apps/fabric/conf/config.toml"
     asyncio.run(main(node_id, config_file))

@@ -29,5 +29,5 @@ async def main(config_file):
         await task
 
 if __name__ == "__main__":
-    config_file = "apps/fabric/test/config.toml"
+    config_file = "apps/fabric/conf/config.toml"
     asyncio.run(main(config_file))
