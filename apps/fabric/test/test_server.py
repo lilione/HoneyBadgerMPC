@@ -1,7 +1,7 @@
 import asyncio
 import toml
 from honeybadgermpc.router import SimpleRouter
-from apps.fabric.Server import Server
+from apps.fabric.src.server.Server import Server
 
 async def main(config_file):
     config = toml.load(config_file)

@@ -5,6 +5,7 @@ import time
 from aiohttp import web
 from honeybadgermpc.elliptic_curve import Subgroup
 from honeybadgermpc.field import GF
+from honeybadgermpc.mpc import Mpc
 from honeybadgermpc.offline_randousha import randousha
 
 field = GF(Subgroup.BLS12_381)
@@ -27,6 +28,8 @@ class Server:
         self.inputmasks = []
         self.max_inputmask_idx = 0
 
+        self.epoch = 0
+
     async def gen_inputmasks(self):
         k = 1
         target = 10
@@ -47,16 +50,38 @@ class Server:
             rs_t, rs_2t = zip(*await randousha(self.n, self.t, k, self.node_id, send, recv, field))
             assert len(rs_t) == len(rs_2t) == k * (self.n - 2 * self.t)
 
-            end_time = time.time()
+            print(rs_t)
             self.inputmasks += rs_t
 
             preproc_round += 1
+
+    async def reconstruction(self, share):
+        async def prog(ctx):
+            logging.info(f"[{ctx.myid}] Running MPC network")
+            msg_share = ctx.Share(share)
+            opened_value = await msg_share.open()
+            return opened_value
+            # opened_value_bytes = opened_value.value.to_bytes(32, "big")
+            # logging.info(f"opened_value in bytes: {opened_value_bytes}")
+            # msg = opened_value_bytes.decode().strip("\x00")
+            # return msg
+
+        self.epoch += 1
+        send, recv = self.get_send_recv(f"mpc:{self.epoch}")
+        logging.info(f"[{self.node_id}] MPC initiated:{self.epoch}")
+        config = {}
+        ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
+        result = await ctx._run()
+        logging.info(f"[{self.node_id}] MPC complete {result}")
+
+        return result
 
     async def client_req_inputmask(self):
         routes = web.RouteTableDef()
 
         @routes.get("/inputmasks/{mask_idx}")
         async def _handler(request):
+            print(request)
             mask_idx = int(request.match_info.get("mask_idx"))
             self.max_inputmask_idx = max(mask_idx, self.max_inputmask_idx)
             data = {
@@ -66,11 +91,17 @@ class Server:
             }
             return web.json_response(data)
         
-        @routes.get(("/start_reconstruction"))
+        @routes.get(("/start_reconstruction/{share}"))
         async def _handler(request):
-            print(request)
+            print("request", request)
+            share = int(request.match_info.get("share")[1:-1])
+            print("share", share)
+            
+            res = await self.reconstruction(share)
+            print(res)
+
             data = {
-                "status": "ok",
+                "value": int(res),
             }
             return web.json_response(data)
 

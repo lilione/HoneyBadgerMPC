@@ -4,7 +4,7 @@ import toml
 
 from honeybadgermpc.config import NodeDetails
 from honeybadgermpc.ipc import NodeCommunicator
-from apps.fabric.Server import Server
+from apps.fabric.src.server.Server import Server
 
 async def main(node_id, config_file):
     config = toml.load(config_file)
