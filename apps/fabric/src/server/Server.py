@@ -7,6 +7,27 @@ from honeybadgermpc.elliptic_curve import Subgroup
 from honeybadgermpc.field import GF
 from honeybadgermpc.mpc import Mpc
 from honeybadgermpc.offline_randousha import randousha
+from honeybadgermpc.preprocessing import PreProcessedElements
+from honeybadgermpc.progs.mixins.share_arithmetic import (
+    BeaverMultiply,
+    BeaverMultiplyArrays,
+    DivideShareArrays,
+    DivideShares,
+    InvertShare,
+    InvertShareArray,
+)
+from honeybadgermpc.progs.mixins.share_comparison import Equality, LessThan
+
+STANDARD_ARITHMETIC_MIXINS = [
+    BeaverMultiply(),
+    BeaverMultiplyArrays(),
+    InvertShare(),
+    InvertShareArray(),
+    DivideShares(),
+    DivideShareArrays(),
+    Equality(),
+    LessThan(),
+]
 
 field = GF(Subgroup.BLS12_381)
 
@@ -30,6 +51,12 @@ class Server:
 
         self.epoch = 0
 
+        # pp_elements = PreProcessedElements()
+        # pp_elements.generate_share_bits(1, self.n, self.t)
+        # pp_elements.generate_triples(200, self.n, self.t)
+        # pp_elements.generate_bits(200, self.n, self.t)
+        # pp_elements.generate_rands(100, self.n, self.t)
+
     async def gen_inputmasks(self):
         k = 1
         target = 10
@@ -38,7 +65,7 @@ class Server:
             while True:
                 if len(self.inputmasks) - self.max_inputmask_idx <= target:
                     break
-                await asyncio.sleep(50)
+                await asyncio.sleep(10)
 
             # Run Randousha
             logging.info(
@@ -61,10 +88,6 @@ class Server:
             msg_share = ctx.Share(share)
             opened_value = await msg_share.open()
             return opened_value
-            # opened_value_bytes = opened_value.value.to_bytes(32, "big")
-            # logging.info(f"opened_value in bytes: {opened_value_bytes}")
-            # msg = opened_value_bytes.decode().strip("\x00")
-            # return msg
 
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
@@ -76,7 +99,47 @@ class Server:
 
         return result
 
-    async def client_req_inputmask(self):
+    async def cmp(self, share_a, share_b):
+        async def prog(ctx):
+            return await (ctx.Share(share_a) < ctx.Share(share_b)).open()
+
+        self.epoch += 1
+        send, recv = self.get_send_recv(f"mpc:{self.epoch}")
+        logging.info(f"[{self.node_id}] MPC initiated:{self.epoch}")
+        print(STANDARD_ARITHMETIC_MIXINS)
+        config = {}
+        for mixin in STANDARD_ARITHMETIC_MIXINS:
+            config[mixin.name] = mixin
+        ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
+        result = await ctx._run()
+        logging.info(f"[{self.node_id}] MPC complete {result}")
+
+        return result
+
+    async def eq(self, share_a, share_b):
+        async def prog(ctx):
+            return await (ctx.Share(share_a) == ctx.Share(share_b)).open()
+
+        self.epoch += 1
+        send, recv = self.get_send_recv(f"mpc:{self.epoch}")
+        logging.info(f"[{self.node_id}] MPC initiated:{self.epoch}")
+        print(STANDARD_ARITHMETIC_MIXINS)
+        config = {}
+        for mixin in STANDARD_ARITHMETIC_MIXINS:
+            config[mixin.name] = mixin
+        ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
+        result = await ctx._run()
+        logging.info(f"[{self.node_id}] MPC complete {result}")
+
+        return result
+
+    async def enough_mask(self, mask_idx):
+        while True:
+            if mask_idx < len(self.inputmasks):
+                break
+            await asyncio.sleep(2)
+
+    async def http_server(self):
         routes = web.RouteTableDef()
 
         @routes.get("/inputmasks/{mask_idx}")
@@ -84,6 +147,7 @@ class Server:
             print(request)
             mask_idx = int(request.match_info.get("mask_idx"))
             self.max_inputmask_idx = max(mask_idx, self.max_inputmask_idx)
+            await self.enough_mask(mask_idx)
             data = {
                 "inputmask": self.inputmasks[mask_idx],
                 "server_id": self.node_id,
@@ -102,6 +166,38 @@ class Server:
 
             data = {
                 "value": int(res),
+            }
+            return web.json_response(data)
+
+        @routes.get(("/cmp/{share_a}+{share_b}"))
+        async def _handler(request):
+            print("request", request)
+            share_a = int(request.match_info.get("share_a")[1:-1])
+            share_b = int(request.match_info.get("share_b")[1:-1])
+            print("share_a", share_a)
+            print("share_b", share_b)
+
+            res = await self.cmp(share_a, share_b)
+            print(res)
+
+            data = {
+                "result": int(res),
+            }
+            return web.json_response(data)
+
+        @routes.get(("/eq/{share_a}+{share_b}"))
+        async def _handler(request):
+            print("request", request)
+            share_a = int(request.match_info.get("share_a")[1:-1])
+            share_b = int(request.match_info.get("share_b")[1:-1])
+            print("share_a", share_a)
+            print("share_b", share_b)
+
+            res = await self.eq(share_a, share_b)
+            print(res)
+
+            data = {
+                "result": int(res),
             }
             return web.json_response(data)
 

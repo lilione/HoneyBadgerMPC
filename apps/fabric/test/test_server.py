@@ -23,7 +23,7 @@ async def main(config_file):
     for server in servers:
         print(server)
         tasks.append(asyncio.ensure_future(server.gen_inputmasks()))
-        tasks.append(asyncio.ensure_future(server.client_req_inputmask()))
+        tasks.append(asyncio.ensure_future(server.http_server()))
 
     for task in tasks:
         await task
