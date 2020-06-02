@@ -3,6 +3,10 @@ import sys
 import toml
 
 from apps.fabric.src.client.Client import Client
+from honeybadgermpc.elliptic_curve import Subgroup
+from honeybadgermpc.field import GF
+
+field = GF(Subgroup.BLS12_381)
 
 def create_client(config_file):
     config = toml.load(config_file)
@@ -20,11 +24,14 @@ def get_local_host():
     return line.split('\t')[0]
 
 if __name__ == '__main__':
-    share = sys.argv[1]
+    share_a = sys.argv[1]
+    share_b = sys.argv[2]
 
-    client = create_client("apps/fabric/conf/config.toml")
+    client = create_client('apps/fabric/conf/config.toml')
 
     host = get_local_host()
+    print(host)
 
-    value = asyncio.run(client.req_start_reconstrct(host, share))
-    print("value", value)
+    result = asyncio.run(client.req_eq(host, share_a, share_b))
+
+    print("result", result)

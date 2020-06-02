@@ -106,7 +106,6 @@ class Server:
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
         logging.info(f"[{self.node_id}] MPC initiated:{self.epoch}")
-        print(STANDARD_ARITHMETIC_MIXINS)
         config = {}
         for mixin in STANDARD_ARITHMETIC_MIXINS:
             config[mixin.name] = mixin
@@ -123,7 +122,6 @@ class Server:
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
         logging.info(f"[{self.node_id}] MPC initiated:{self.epoch}")
-        print(STANDARD_ARITHMETIC_MIXINS)
         config = {}
         for mixin in STANDARD_ARITHMETIC_MIXINS:
             config[mixin.name] = mixin
@@ -149,9 +147,7 @@ class Server:
             self.max_inputmask_idx = max(mask_idx, self.max_inputmask_idx)
             await self.enough_mask(mask_idx)
             data = {
-                "inputmask": self.inputmasks[mask_idx],
-                "server_id": self.node_id,
-                "server_port": self.http_port,
+                "inputmask_share": self.inputmasks[mask_idx],
             }
             return web.json_response(data)
         

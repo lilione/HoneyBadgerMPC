@@ -25,14 +25,13 @@ class Client:
 
         logging.info(
             f"query server {host}:{port} "
-            f"for its share of input mask with id {mask_idx}"
+            f"for inputmask with id {mask_idx}"
         )
         url = f"http://{host}:{port}/inputmasks/{mask_idx}"
         async with ClientSession() as session:
             async with session.get(url) as resp:
                 json_response = await resp.json()
-        share = json_response["inputmask"]
-        return share
+        return json_response["inputmask_share"]
 
     async def req_start_reconstrct(self, host, share):
         port = -1
@@ -51,47 +50,100 @@ class Client:
         result = await self.send_request(host, port, url)
         return result["value"]
 
-    async def test_cmp(self, shares, idx_a, masked_a, idx_b, masked_b):
-        tasks = []
+    async def req_cmp(self, host, share_a, share_b):
+        port = -1
+        import socket
         for server in self.servers:
-            host = server["host"]
-            port = server["http_port"]
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                if s.connect_ex((host, server['http_port'])) == 0:
+                    port = server['http_port']
 
-            server_id = server["id"]
-            print(server_id)
-            share_a = masked_a - shares[idx_a][server_id][1]
-            share_b = masked_b - shares[idx_b][server_id][1]
-            url = f"http://{host}:{port}/cmp/{share_a}+{share_b}"
+        logging.info(
+            f"query server {host}:{port} "
+            f"cmp between share_a {share_a} share_b {share_b}"
+        )
 
-            task = asyncio.ensure_future(self.send_request(host, port, url))
-            tasks.append(task)
+        url = f"http://{host}:{port}/cmp/{share_a}+{share_b}"
+        result = await self.send_request(host, port, url)
+        return result["result"]
 
-        for task in tasks:
-            await task
-
-        for task in tasks:
-            print(task.result())
-
-    async def test_eq(self, shares, idx_a, masked_a, idx_b, masked_b):
-        tasks = []
+    async def req_eq(self, host, share_a, share_b):
+        port = -1
+        import socket
         for server in self.servers:
-            host = server["host"]
-            port = server["http_port"]
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                if s.connect_ex((host, server['http_port'])) == 0:
+                    port = server['http_port']
 
-            server_id = server["id"]
-            print(server_id)
-            share_a = masked_a - shares[idx_a][server_id][1]
-            share_b = masked_b - shares[idx_b][server_id][1]
-            url = f"http://{host}:{port}/eq/{share_a}+{share_b}"
+        logging.info(
+            f"query server {host}:{port} "
+            f"cmp between share_a {share_a} share_b {share_b}"
+        )
 
-            task = asyncio.ensure_future(self.send_request(host, port, url))
-            tasks.append(task)
+        url = f"http://{host}:{port}/eq/{share_a}+{share_b}"
+        result = await self.send_request(host, port, url)
+        return result["result"]
 
-        for task in tasks:
-            await task
+    # async def test_cmp(self, share_a, share_b):
+    #     tasks = []
+    #     for server in self.servers:
+    #         host = server["host"]
+    #         port = server["http_port"]
+    #
+    #         server_id = server["id"]
+    #         print(server_id)
+    #         url = f"http://{host}:{port}/cmp/{share_a[server_id]}+{share_b[server_id]}"
+    #
+    #         task = asyncio.ensure_future(self.send_request(host, port, url))
+    #         tasks.append(task)
+    #
+    #     for task in tasks:
+    #         await task
+    #
+    #     for task in tasks:
+    #         print(task.result())
 
-        for task in tasks:
-            print(task.result())
+    # async def test_cmp(self, shares, idx_a, masked_a, idx_b, masked_b):
+    #     tasks = []
+    #     for server in self.servers:
+    #         host = server["host"]
+    #         port = server["http_port"]
+    #
+    #         server_id = server["id"]
+    #         print(server_id)
+    #         share_a = masked_a - shares[idx_a][server_id][1]
+    #         share_b = masked_b - shares[idx_b][server_id][1]
+    #         url = f"http://{host}:{port}/cmp/{share_a}+{share_b}"
+    #
+    #         task = asyncio.ensure_future(self.send_request(host, port, url))
+    #         tasks.append(task)
+    #
+    #     for task in tasks:
+    #         await task
+    #
+    #     for task in tasks:
+    #         print(task.result())
+    #
+    # async def test_eq(self, shares, idx_a, masked_a, idx_b, masked_b):
+    #     tasks = []
+    #     for server in self.servers:
+    #         host = server["host"]
+    #         port = server["http_port"]
+    #
+    #         server_id = server["id"]
+    #         print(server_id)
+    #         share_a = masked_a - shares[idx_a][server_id][1]
+    #         share_b = masked_b - shares[idx_b][server_id][1]
+    #         url = f"http://{host}:{port}/eq/{share_a}+{share_b}"
+    #
+    #         task = asyncio.ensure_future(self.send_request(host, port, url))
+    #         tasks.append(task)
+    #
+    #     for task in tasks:
+    #         await task
+    #
+    #     for task in tasks:
+    #         print(task.result())
 
     # **** call from remote client ****
     async def send_request(self, host, port, url):
@@ -123,7 +175,7 @@ class Client:
 
         shares = []
         for task in tasks:
-            shares.append(task.result()["inputmask"])
+            shares.append(task.result()["inputmask_share"])
 
         logging.info(
             f"{len(shares)} of input mask shares have"
