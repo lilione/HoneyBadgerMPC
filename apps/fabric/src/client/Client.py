@@ -103,47 +103,47 @@ class Client:
     #     for task in tasks:
     #         print(task.result())
 
-    # async def test_cmp(self, shares, idx_a, masked_a, idx_b, masked_b):
-    #     tasks = []
-    #     for server in self.servers:
-    #         host = server["host"]
-    #         port = server["http_port"]
-    #
-    #         server_id = server["id"]
-    #         print(server_id)
-    #         share_a = masked_a - shares[idx_a][server_id][1]
-    #         share_b = masked_b - shares[idx_b][server_id][1]
-    #         url = f"http://{host}:{port}/cmp/{share_a}+{share_b}"
-    #
-    #         task = asyncio.ensure_future(self.send_request(host, port, url))
-    #         tasks.append(task)
-    #
-    #     for task in tasks:
-    #         await task
-    #
-    #     for task in tasks:
-    #         print(task.result())
-    #
-    # async def test_eq(self, shares, idx_a, masked_a, idx_b, masked_b):
-    #     tasks = []
-    #     for server in self.servers:
-    #         host = server["host"]
-    #         port = server["http_port"]
-    #
-    #         server_id = server["id"]
-    #         print(server_id)
-    #         share_a = masked_a - shares[idx_a][server_id][1]
-    #         share_b = masked_b - shares[idx_b][server_id][1]
-    #         url = f"http://{host}:{port}/eq/{share_a}+{share_b}"
-    #
-    #         task = asyncio.ensure_future(self.send_request(host, port, url))
-    #         tasks.append(task)
-    #
-    #     for task in tasks:
-    #         await task
-    #
-    #     for task in tasks:
-    #         print(task.result())
+    async def test_cmp(self, shares, idx_a, masked_a, idx_b, masked_b):
+        tasks = []
+        for server in self.servers:
+            host = server["host"]
+            port = server["http_port"]
+
+            server_id = server["id"]
+            print(server_id)
+            share_a = masked_a - shares[idx_a][server_id][1]
+            share_b = masked_b - shares[idx_b][server_id][1]
+            url = f"http://{host}:{port}/cmp/{share_a}+{share_b}"
+
+            task = asyncio.ensure_future(self.send_request(host, port, url))
+            tasks.append(task)
+
+        for task in tasks:
+            await task
+
+        for task in tasks:
+            print(task.result())
+
+    async def test_eq(self, shares, idx_a, masked_a, idx_b, masked_b):
+        tasks = []
+        for server in self.servers:
+            host = server["host"]
+            port = server["http_port"]
+
+            server_id = server["id"]
+            print(server_id)
+            share_a = masked_a - shares[idx_a][server_id][1]
+            share_b = masked_b - shares[idx_b][server_id][1]
+            url = f"http://{host}:{port}/eq/{share_a}+{share_b}"
+
+            task = asyncio.ensure_future(self.send_request(host, port, url))
+            tasks.append(task)
+
+        for task in tasks:
+            await task
+
+        for task in tasks:
+            print(task.result())
 
     # **** call from remote client ****
     async def send_request(self, host, port, url):

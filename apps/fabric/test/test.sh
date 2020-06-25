@@ -1,3 +1,5 @@
+# bash apps/fabric/test/test.sh
+
 rm apps/fabric/log/server/log_0.txt
 rm apps/fabric/log/server/log_1.txt
 rm apps/fabric/log/server/log_2.txt
@@ -12,5 +14,4 @@ python3 apps/fabric/src/server/start_server.py 3 &> apps/fabric/log/server/log_3
 
 sleep 2
 
-#python3 apps/fabric/src/client/start_client.py
 python3 apps/fabric/test/test_cmp.py

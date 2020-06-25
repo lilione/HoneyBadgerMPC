@@ -5,6 +5,7 @@ import random
 import re
 import subprocess
 import toml
+import time
 
 from apps.fabric.src.client.Client import Client
 
@@ -28,147 +29,98 @@ def get_inputmask_idx(num):
         if "payload" in line:
             return re.split(" ", re.split("payload:\"|\" \n", line)[1])
 
-def register_item(idx_registrant, masked_registrant, idx_amt, masked_amt):
+def create_truck():
     env = os.environ.copy()
     tasks = []
 
     for peer in range(2):
         for org in range(1, 3):
-            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh registerItem {peer} {org} {idx_registrant} {masked_registrant} {idx_amt} {masked_amt}"]
+            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh createTruck {peer} {org}"]
             task = subprocess.Popen(cmd, env=env)
             tasks.append(task)
 
     for task in tasks:
         task.wait()
 
-    file = open("apps/fabric/log/chaincode/registerItem_peer0org1.txt", "r")
+    file = open("apps/fabric/log/chaincode/createTruck_peer0org1.txt", "r")
     for line in file.readlines():
         if "payload" in line:
             return re.split(" ", re.split("payload:\"|\" \n", line)[1])
 
-def hand_off_item_to_next_provider(idxInputProvider, maskedInputProvider, idxOutputProvider, maskedOutputProvider, idxAmt, maskedAmt, itemID, prevSeq):
+def record_shipment(truck_id, load_time, unload_time):
+    inputmask_idx = get_inputmask_idx(2)
+
+    mask = []
+    for i in inputmask_idx:
+        mask.append(asyncio.run(client.get_inputmask(int(i)))[0])
+
+    print("**** load_time", load_time)
+    masked_load_time = str(load_time + mask[0])[1:-1]
+    print("**** masked_load_time", masked_load_time)
+
+    print("**** unload_time", unload_time)
+    masked_unload_time = str(unload_time + mask[1])[1:-1]
+    print("**** masked_unload_time", masked_unload_time)
+
     env = os.environ.copy()
     tasks = []
 
     for peer in range(2):
         for org in range(1, 3):
-            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh handOffItemToNextProvider {peer} {org} {idxInputProvider} {maskedInputProvider} {idxOutputProvider} {maskedOutputProvider} {idxAmt} {maskedAmt} {itemID} {prevSeq}"]
+            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh recordShipment {peer} {org} {truck_id} {inputmask_idx[0]} {masked_load_time} {inputmask_idx[1]} {masked_unload_time}"]
             task = subprocess.Popen(cmd, env=env)
             tasks.append(task)
 
     for task in tasks:
         task.wait()
 
-    file = open("apps/fabric/log/chaincode/handOffItemToNextProvider_peer0org1.txt", "r")
+def query_positions(truck_id, init_time, end_time):
+    inputmask_idx = get_inputmask_idx(2)
+
+    mask = []
+    for i in inputmask_idx:
+        mask.append(asyncio.run(client.get_inputmask(int(i)))[0])
+
+    print("**** init_time", init_time)
+    masked_init_time = str(init_time + mask[0])[1:-1]
+    print("**** masked_init_time", masked_init_time)
+
+    print("**** end_time", end_time)
+    masked_end_time = str(end_time + mask[1])[1:-1]
+    print("**** masked_end_time", masked_end_time)
+
+    env = os.environ.copy()
+    tasks = []
+
+    for peer in range(2):
+        for org in range(1, 3):
+            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh queryPositions {peer} {org} {truck_id} {inputmask_idx[0]} {masked_init_time} {inputmask_idx[1]} {masked_end_time}"]
+            task = subprocess.Popen(cmd, env=env)
+            tasks.append(task)
+
+    for task in tasks:
+        task.wait()
+
+    file = open("apps/fabric/log/chaincode/recordShipment_peer0org1.txt", "r")
     for line in file.readlines():
         if "payload" in line:
-            return re.split(" ", re.split("payload:\"|\" \n", line)[1])[0]
-
-def source_item(itemID, nonce):
-    env = os.environ.copy()
-    tasks = []
-
-    for peer in range(2):
-        for org in range(1, 3):
-            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh sourceItem {peer} {org} {itemID} {nonce}"]
-            task = subprocess.Popen(cmd, env=env)
-            tasks.append(task)
-
-    for task in tasks:
-        task.wait()
+            return re.split(" ", re.split("payload:\"|\" \n", line)[1])
 
 if __name__ == '__main__':
     client = create_client("apps/fabric/conf/config.toml")
 
-    # inputmask_idx = get_inputmask_idx(2)
-    # print("**** inputmask_idx", inputmask_idx)
-    #
-    # mask = []
-    # for i in inputmask_idx:
-    #     mask.append(asyncio.run(client.get_inputmask(int(i)))[0])
-    # print(f"**** request idx {inputmask_idx} mask {mask}")
-    #
-    # output_provider = random.randint(1, 10)
-    # print("*** output_provider", output_provider)
-    # masked_output_provider = output_provider + mask[0]
-    # print("**** masked_output_provider", masked_output_provider)
-    #
-    # amt = random.randint(1, 10)
-    # print("*** amt", amt)
-    # masked_amt = amt + mask[1]
-    # print("**** masked_amt", masked_amt)
-    #
-    # item_id, seq = register_item(inputmask_idx[0], str(masked_output_provider)[1:-1], inputmask_idx[1], str(masked_amt)[1:-1])
-    # print(f"**** item_id {item_id} seq {seq}")
+    truck_id = create_truck()
+    # truck_id = ['0']
+    print(f"**** truck_id {truck_id}")
 
-    ###########
+    record_shipment(str(truck_id)[1:-1], 1, 3)
 
-    # item_id = 0
-    # seq = 0
-    # output_provider = 6
-    # amt = 7
-    #
-    # inputmask_idx = get_inputmask_idx(3)
-    # print("**** inputmask_idx", inputmask_idx)
-    #
-    # mask = []
-    # for i in inputmask_idx:
-    #     mask.append(asyncio.run(client.get_inputmask(int(i)))[0])
-    # print(f"**** request idx {inputmask_idx} mask {mask}")
-    #
-    # input_provider = output_provider
-    # print("*** input_provider", input_provider)
-    # masked_input_provider = input_provider + mask[0]
-    # print("**** masked_input_provider", masked_input_provider)
-    #
-    # output_provider = random.randint(1, 10)
-    # print("*** output_provider", output_provider)
-    # masked_output_provider = output_provider + mask[1]
-    # print("**** masked_output_provider", masked_output_provider)
-    #
-    # amt = random.randint(1, amt)
-    # print("*** amt", amt)
-    # masked_amt = amt + mask[2]
-    # print("**** masked_amt", masked_amt)
-    #
-    # seq = hand_off_item_to_next_provider(inputmask_idx[0], str(masked_input_provider)[1:-1], inputmask_idx[1], str(masked_output_provider)[1:-1], inputmask_idx[2], str(masked_output_provider)[1:-1], item_id, seq)
-    # print(f"**** item_id {item_id} seq {seq}")
+    record_shipment(str(truck_id)[1:-1], 2, 4)
 
-    #############
+    # record_shipment(str(truck_id)[1:-1], 3, 5)
 
-    # item_id = 0
-    # seq = 1
-    # output_provider = 3
-    # amt = 4
-    #
-    # inputmask_idx = get_inputmask_idx(3)
-    # print("**** inputmask_idx", inputmask_idx)
-    #
-    # mask = []
-    # for i in inputmask_idx:
-    #     mask.append(asyncio.run(client.get_inputmask(int(i)))[0])
-    # print(f"**** request idx {inputmask_idx} mask {mask}")
-    #
-    # input_provider = output_provider
-    # print("*** input_provider", input_provider)
-    # masked_input_provider = input_provider + mask[0]
-    # print("**** masked_input_provider", masked_input_provider)
-    #
-    # output_provider = random.randint(1, 10)
-    # print("*** output_provider", output_provider)
-    # masked_output_provider = output_provider + mask[1]
-    # print("**** masked_output_provider", masked_output_provider)
-    #
-    # amt = random.randint(1, amt)
-    # print("*** amt", amt)
-    # masked_amt = amt + mask[2]
-    # print("**** masked_amt", masked_amt)
-    #
-    # seq = hand_off_item_to_next_provider(inputmask_idx[0], str(masked_input_provider)[1:-1], inputmask_idx[1], str(masked_output_provider)[1:-1], inputmask_idx[2], str(masked_output_provider)[1:-1], item_id, seq)
-    # print(f"**** item_id {item_id} seq {seq}")
+    # record_shipment(str(truck_id)[1:-1], 4, 6)
 
-    #########
+    # record_shipment(str(truck_id)[1:-1], 5, 7)
 
-    item_id = 0
-    seq = 2
-    source_item(item_id, seq)
+    query_positions(str(truck_id)[1:-1], 1, 2)
