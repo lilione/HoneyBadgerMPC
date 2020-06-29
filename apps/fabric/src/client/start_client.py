@@ -74,6 +74,8 @@ def record_shipment(truck_id, load_time, unload_time):
     for task in tasks:
         task.wait()
 
+    time.sleep(2)
+
 def query_positions(truck_id, init_time, end_time):
     inputmask_idx = get_inputmask_idx(2)
 
@@ -117,10 +119,10 @@ if __name__ == '__main__':
 
     record_shipment(str(truck_id)[1:-1], 2, 4)
 
-    # record_shipment(str(truck_id)[1:-1], 3, 5)
+    record_shipment(str(truck_id)[1:-1], 3, 5)
 
-    # record_shipment(str(truck_id)[1:-1], 4, 6)
+    record_shipment(str(truck_id)[1:-1], 4, 6)
 
-    # record_shipment(str(truck_id)[1:-1], 5, 7)
+    record_shipment(str(truck_id)[1:-1], 5, 7)
 
-    query_positions(str(truck_id)[1:-1], 1, 2)
+    query_positions(str(truck_id)[1:-1], 4, 4)

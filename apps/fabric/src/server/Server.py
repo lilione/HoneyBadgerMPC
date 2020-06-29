@@ -52,10 +52,11 @@ class Server:
         self.epoch = 0
 
         # pp_elements = PreProcessedElements()
-        # pp_elements.generate_share_bits(1, self.n, self.t)
-        # pp_elements.generate_triples(200, self.n, self.t)
-        # pp_elements.generate_bits(200, self.n, self.t)
-        # pp_elements.generate_rands(100, self.n, self.t)
+        # if self.node_id == 0:
+        #     pp_elements.generate_share_bits(1, self.n, self.t)
+        #     pp_elements.generate_triples(200, self.n, self.t)
+        #     pp_elements.generate_bits(200, self.n, self.t)
+        #     pp_elements.generate_rands(100, self.n, self.t)
 
     async def gen_inputmasks(self):
         k = 1
