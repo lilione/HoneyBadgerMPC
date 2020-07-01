@@ -102,7 +102,7 @@ class Server:
 
     async def cmp(self, share_a, share_b):
         async def prog(ctx):
-            return await (ctx.Share(share_a) < ctx.Share(share_b)).open()
+            return await (await (ctx.Share(share_a) < ctx.Share(share_b)))
 
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
@@ -118,7 +118,7 @@ class Server:
 
     async def eq(self, share_a, share_b):
         async def prog(ctx):
-            return await (ctx.Share(share_a) == ctx.Share(share_b)).open()
+            return await (ctx.Share(share_a) == ctx.Share(share_b))
 
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
@@ -178,7 +178,7 @@ class Server:
             print(res)
 
             data = {
-                "result": int(res),
+                "result": str(res),
             }
             return web.json_response(data)
 
@@ -194,7 +194,7 @@ class Server:
             print(res)
 
             data = {
-                "result": int(res),
+                "result": str(res),
             }
             return web.json_response(data)
 

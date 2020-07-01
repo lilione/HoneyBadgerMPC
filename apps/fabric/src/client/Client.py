@@ -121,8 +121,16 @@ class Client:
         for task in tasks:
             await task
 
-        for task in tasks:
-            print(task.result())
+        # _tasks = []
+        # for task in tasks:
+        #     await self.req_start_reconstrct("127.0.0.1", task.result()['result'])
+            # _tasks.append(_task)
+
+        # for _task in _tasks:
+        #     await _task
+        #
+        # for _task in _tasks:
+        #     print(_task.result())
 
     async def test_eq(self, shares, idx_a, masked_a, idx_b, masked_b):
         tasks = []
