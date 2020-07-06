@@ -1,33 +1,38 @@
 import asyncio
+import sys
 import toml
-from honeybadgermpc.router import SimpleRouter
+
+from honeybadgermpc.config import NodeDetails
+from honeybadgermpc.ipc import NodeCommunicator
 from apps.fabric.src.server.Server import Server
 
-async def main(config_file):
+async def main(node_id, config_file):
     config = toml.load(config_file)
 
     n = config['n']
     t = config['t']
 
-    # communication channels
-    router = SimpleRouter(n)
-    sends, recvs = router.sends, router.recvs
+    # For NodeCommunicator
+    node_details = {
+        i: NodeDetails(s["host"], s["nc_port"])
+        for i, s in enumerate(config["servers"])
+    }
 
-    servers = []
-    for i in range(n):
-        server_config = config["servers"][i]
-        server = Server(n, t, server_config["id"], sends[i], recvs[i], server_config["host"], server_config["port"])
-        servers.append(server)
+    # NodeCommunicator / zeromq sockets
+    nc = NodeCommunicator(node_details, node_id, 2)
+    await nc._setup()
+
+    server_config = config["servers"][node_id]
+    server = Server(n, t, node_id, nc.send, nc.recv, server_config["host"], server_config["nc_port"], server_config["http_port"])
 
     tasks = []
-    for server in servers:
-        print(server)
-        tasks.append(asyncio.ensure_future(server.gen_inputmasks()))
-        tasks.append(asyncio.ensure_future(server.http_server()))
+    tasks.append(asyncio.ensure_future(server.gen_inputmasks()))
+    tasks.append(asyncio.ensure_future(server.http_server()))
 
     for task in tasks:
         await task
 
 if __name__ == "__main__":
-    config_file = "apps/fabric/conf/config.toml"
-    asyncio.run(main(config_file))
+    node_id = int(sys.argv[1])
+    config_file = "apps/fabric/conf/test_config.toml"
+    asyncio.run(main(node_id, config_file))

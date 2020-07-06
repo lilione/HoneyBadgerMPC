@@ -92,7 +92,7 @@ class Server:
 
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
-        logging.info(f"[{self.node_id}] MPC initiated:{self.epoch}")
+        logging.info(f"[{self.node_id}] MPC initiated reconstruction:{self.epoch}")
         config = {}
         ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
         result = await ctx._run()
@@ -106,7 +106,7 @@ class Server:
 
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
-        logging.info(f"[{self.node_id}] MPC initiated:{self.epoch}")
+        logging.info(f"[{self.node_id}] MPC initiated cmp:{self.epoch}")
         config = {}
         for mixin in STANDARD_ARITHMETIC_MIXINS:
             config[mixin.name] = mixin
@@ -122,7 +122,55 @@ class Server:
 
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
-        logging.info(f"[{self.node_id}] MPC initiated:{self.epoch}")
+        logging.info(f"[{self.node_id}] MPC initiated eq:{self.epoch}")
+        config = {}
+        for mixin in STANDARD_ARITHMETIC_MIXINS:
+            config[mixin.name] = mixin
+        ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
+        result = await ctx._run()
+        logging.info(f"[{self.node_id}] MPC complete {result}")
+
+        return result
+
+    async def mul(self, share_a, share_b):
+        async def prog(ctx):
+            return await (ctx.Share(share_a) * ctx.Share(share_b))
+
+        self.epoch += 1
+        send, recv = self.get_send_recv(f"mpc:{self.epoch}")
+        logging.info(f"[{self.node_id}] MPC initiated mul:{self.epoch}")
+        config = {}
+        for mixin in STANDARD_ARITHMETIC_MIXINS:
+            config[mixin.name] = mixin
+        ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
+        result = await ctx._run()
+        logging.info(f"[{self.node_id}] MPC complete {result}")
+
+        return result
+
+    async def one_minus_share(self, share):
+        async def prog(ctx):
+            return (ctx.Share(1) - ctx.Share(share))
+
+        self.epoch += 1
+        send, recv = self.get_send_recv(f"mpc:{self.epoch}")
+        logging.info(f"[{self.node_id}] MPC initiated one_minus_share:{self.epoch}")
+        config = {}
+        for mixin in STANDARD_ARITHMETIC_MIXINS:
+            config[mixin.name] = mixin
+        ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
+        result = await ctx._run()
+        logging.info(f"[{self.node_id}] MPC complete {result}")
+
+        return result
+
+    async def add(self, share_a, share_b):
+        async def prog(ctx):
+            return (ctx.Share(share_a) + ctx.Share(share_b))
+
+        self.epoch += 1
+        send, recv = self.get_send_recv(f"mpc:{self.epoch}")
+        logging.info(f"[{self.node_id}] MPC initiated add:{self.epoch}")
         config = {}
         for mixin in STANDARD_ARITHMETIC_MIXINS:
             config[mixin.name] = mixin
@@ -191,6 +239,52 @@ class Server:
             print("share_b", share_b)
 
             res = await self.eq(share_a, share_b)
+            print(res)
+
+            data = {
+                "result": str(res),
+            }
+            return web.json_response(data)
+
+        @routes.get(("/mul/{share_a}+{share_b}"))
+        async def _handler(request):
+            print("request", request)
+            share_a = int(request.match_info.get("share_a")[1:-1])
+            share_b = int(request.match_info.get("share_b")[1:-1])
+            print("share_a", share_a)
+            print("share_b", share_b)
+
+            res = await self.mul(share_a, share_b)
+            print(res)
+
+            data = {
+                "result": str(res),
+            }
+            return web.json_response(data)
+
+        @routes.get(("/one_minus_share/{share}"))
+        async def _handler(request):
+            print("request", request)
+            share = int(request.match_info.get("share")[1:-1])
+            print("share", share)
+
+            res = await self.one_minus_share(share)
+            print(res)
+
+            data = {
+                "result": str(res),
+            }
+            return web.json_response(data)
+
+        @routes.get(("/add/{share_a}+{share_b}"))
+        async def _handler(request):
+            print("request", request)
+            share_a = int(request.match_info.get("share_a")[1:-1])
+            share_b = int(request.match_info.get("share_b")[1:-1])
+            print("share_a", share_a)
+            print("share_b", share_b)
+
+            res = await self.add(share_a, share_b)
             print(res)
 
             data = {
