@@ -3,10 +3,6 @@ import sys
 import toml
 
 from apps.fabric.src.client.Client import Client
-from honeybadgermpc.elliptic_curve import Subgroup
-from honeybadgermpc.field import GF
-
-field = GF(Subgroup.BLS12_381)
 
 def create_client(config_file):
     config = toml.load(config_file)
