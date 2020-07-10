@@ -29,7 +29,7 @@ def register_item(registrant):
 
     for peer in range(2):
         for org in range(1, 3):
-            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh registerItem {peer} {org} {C}"]
+            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 2_registerItem {peer} {org} {C}"]
             task = subprocess.Popen(cmd, env=env)
             tasks.append(task)
 
@@ -59,7 +59,7 @@ def hand_off_item_to_next_provider(input_provider, output_provider, item_id, pre
 
     for peer in range(2):
         for org in range(1, 3):
-            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh handOffItemToNextProvider {peer} {org} {commit_input_provider} {commit_output_provider} {proof} {item_id} {prev_seq}"]
+            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 2_handOffItemToNextProvider {peer} {org} {commit_input_provider} {commit_output_provider} {proof} {item_id} {prev_seq}"]
             task = subprocess.Popen(cmd, env=env)
             tasks.append(task)
 
@@ -72,19 +72,6 @@ def hand_off_item_to_next_provider(input_provider, output_provider, item_id, pre
             seq = re.split(" ", re.split("payload:\"|\" \n", line)[1])[0]
             time.sleep(3)
             return seq, r
-
-# def source_item(itemID, nonce):
-#     env = os.environ.copy()
-#     tasks = []
-#
-#     for peer in range(2):
-#         for org in range(1, 3):
-#             cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh sourceItem {peer} {org} {itemID} {nonce}"]
-#             task = subprocess.Popen(cmd, env=env)
-#             tasks.append(task)
-#
-#     for task in tasks:
-#         task.wait()
 
 if __name__ == '__main__':
     client = create_client("apps/fabric/conf/config.toml")
