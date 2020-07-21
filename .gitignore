@@ -145,3 +145,4 @@ sharedata/
 .idea/
 
 apps/fabric/log/
+log.txt

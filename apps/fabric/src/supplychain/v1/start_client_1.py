@@ -6,6 +6,7 @@ import time
 import toml
 
 from apps.fabric.src.client.Client import Client
+from apps.fabric.src.supplychain.v1.hand_off_item_to_next_provider import wait_until_shipment_committed
 
 def create_client(config_file):
     config = toml.load(config_file)
@@ -59,6 +60,8 @@ def register_item(registrant, amt):
             return re.split(" ", re.split("payload:\"|\" \n", line)[1])
 
 def hand_off_item_to_next_provider(input_provider, output_provider, amt, item_id, prev_seq):
+
+    wait_until_shipment_committed(item_id, prev_seq, "finalized", 0, 1)
 
     inputmask_idx = get_inputmask_idx(3)
     print("**** inputmask_idx", inputmask_idx)
@@ -123,7 +126,7 @@ if __name__ == '__main__':
     # seq = 1
     seq = hand_off_item_to_next_provider(2, 3, 4, item_id, seq)
     print(f"**** item_id {item_id} seq {seq}")
-
-    # item_id = 0
-    # seq = 2
-    source_item(item_id, seq)
+    #
+    # # item_id = 0
+    # # seq = 2
+    # source_item(item_id, seq)

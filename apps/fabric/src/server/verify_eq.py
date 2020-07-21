@@ -1,7 +1,6 @@
 import sys
 
 from apps.fabric.src.utils.commitment import Commitment
-from honeybadgermpc.betterpairing import ZR
 
 if __name__ == '__main__':
     C1 = sys.argv[1]

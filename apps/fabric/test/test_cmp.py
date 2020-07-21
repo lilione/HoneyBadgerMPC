@@ -31,6 +31,6 @@ if __name__ == '__main__':
     masked_a = a + mask[0]
     masked_b = b + mask[1]
     # asyncio.run(client.test_cmp(shares, 0, masked_a, 1, masked_b))
-    # asyncio.run(client.test_eq(shares, 0, masked_a, 1, masked_b))
-    asyncio.run(client.test_one_minus_share(shares, 0, masked_a))
+    asyncio.run(client.test_eq(shares, 0, masked_a, 1, masked_b))
+    # asyncio.run(client.test_one_minus_share(shares, 0, masked_a))
 

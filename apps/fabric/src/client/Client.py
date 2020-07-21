@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import toml
 
 from aiohttp import ClientSession
 from honeybadgermpc.polynomial import EvalPoint, polynomials_over
@@ -14,14 +15,39 @@ class Client:
         self.t = t
         self.servers = servers
 
-    # **** call from local fabric peer ****
-    async def req_local_mask_share(self, host, mask_idx):
+    @classmethod
+    def from_toml_config(self, config_file):
+        config = toml.load(config_file)
+
+        n = config['n']
+        t = config['t']
+        servers = config["servers"]
+
+        return Client(n, t, servers)
+
+    def get_local_host(self):
+        file = open('/etc/hosts', 'r')
+        lines = file.readlines()
+        line = lines[6]
+        return line.split('\t')[0]
+
+    def get_port(self, host):
         port = -1
         import socket
         for server in self.servers:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 if s.connect_ex((host, server['http_port'])) == 0:
                     port = server['http_port']
+        return port
+
+    def get_peer_and_org(self, port):
+        for server in self.servers:
+            if port == server['http_port']:
+                return (server['host'][4], server['host'][9])
+
+    # **** call from local fabric peer ****
+    async def req_local_mask_share(self, host, mask_idx):
+        port = self.get_port(host)
 
         logging.info(
             f"query server {host}:{port} "
@@ -34,12 +60,7 @@ class Client:
         return json_response["inputmask_share"]
 
     async def req_start_reconstrct(self, host, share):
-        port = -1
-        import socket
-        for server in self.servers:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                if s.connect_ex((host, server['http_port'])) == 0:
-                    port = server['http_port']
+        port = self.get_port(host)
 
         logging.info(
             f"query server {host}:{port} "
@@ -51,12 +72,7 @@ class Client:
         return result["value"]
 
     async def req_cmp(self, host, share_a, share_b):
-        port = -1
-        import socket
-        for server in self.servers:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                if s.connect_ex((host, server['http_port'])) == 0:
-                    port = server['http_port']
+        port = self.get_port(host)
 
         logging.info(
             f"query server {host}:{port} "
@@ -68,12 +84,7 @@ class Client:
         return result["result"]
 
     async def req_eq(self, host, share_a, share_b):
-        port = -1
-        import socket
-        for server in self.servers:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                if s.connect_ex((host, server['http_port'])) == 0:
-                    port = server['http_port']
+        port = self.get_port(host)
 
         logging.info(
             f"query server {host}:{port} "
@@ -85,12 +96,7 @@ class Client:
         return result["result"]
 
     async def req_mul(self, host, share_a, share_b):
-        port = -1
-        import socket
-        for server in self.servers:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                if s.connect_ex((host, server['http_port'])) == 0:
-                    port = server['http_port']
+        port = self.get_port(host)
 
         logging.info(
             f"query server {host}:{port} "
@@ -102,12 +108,7 @@ class Client:
         return result["result"]
 
     async def req_one_minus_share(self, host, share):
-        port = -1
-        import socket
-        for server in self.servers:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                if s.connect_ex((host, server['http_port'])) == 0:
-                    port = server['http_port']
+        port = self.get_port(host)
 
         logging.info(
             f"query server {host}:{port} "
@@ -119,12 +120,7 @@ class Client:
         return result["result"]
 
     async def req_add(self, host, share_a, share_b):
-        port = -1
-        import socket
-        for server in self.servers:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                if s.connect_ex((host, server['http_port'])) == 0:
-                    port = server['http_port']
+        port = self.get_port(host)
 
         logging.info(
             f"query server {host}:{port} "
@@ -171,11 +167,13 @@ class Client:
 
     async def test_eq(self, shares, idx_a, masked_a, idx_b, masked_b):
         tasks = []
+        servers = []
         for server in self.servers:
             host = server["host"]
             port = server["http_port"]
 
             server_id = server["id"]
+
             print(server_id)
             share_a = masked_a - shares[idx_a][server_id][1]
             share_b = masked_b - shares[idx_b][server_id][1]
@@ -183,6 +181,7 @@ class Client:
 
             task = asyncio.ensure_future(self.send_request(host, port, url))
             tasks.append(task)
+            servers.append(server)
 
         for task in tasks:
             await task
@@ -191,7 +190,7 @@ class Client:
             print(task.result())
 
         _tasks = []
-        for task, server in zip(tasks, self.servers):
+        for task, server in zip(tasks, servers):
             print(task.result())
 
             host = server["host"]
@@ -203,6 +202,9 @@ class Client:
 
         for _task in _tasks:
             await _task
+
+        for _task in _tasks:
+            print(_task.result())
 
     async def test_mul(self, shares, idx_a, masked_a, idx_b, masked_b):
         tasks = []
