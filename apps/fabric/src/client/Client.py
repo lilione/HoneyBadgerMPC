@@ -286,8 +286,8 @@ class Client:
             host = server["host"]
             port = server["http_port"]
 
-            server_id = server["id"]
-            print(server_id)
+            # server_id = server["id"]
+            # print(server_id)
 
             url = f"http://{host}:{port}/inputmasks/{mask_idx}"
 

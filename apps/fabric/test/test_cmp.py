@@ -26,7 +26,7 @@ if __name__ == '__main__':
         shares.append(res[1])
     print(f"**** request idx {inputmask_idx} mask {mask} shares {shares}")
 
-    a = 0
+    a = 1
     b = 1
     masked_a = a + mask[0]
     masked_b = b + mask[1]
