@@ -5,6 +5,7 @@ import subprocess
 
 from apps.fabric.src.client.Client import Client
 from apps.fabric.src.supplychain.v1.hand_off_item import wait_until_shipment_committed
+from apps.fabric.src.supplychain.v1.source_item import wait_until_inquiry_committed
 
 def get_inputmask_idx(num, peer=0, org=1):
     env = os.environ.copy()
@@ -118,28 +119,30 @@ def hand_off_item(input_provider, output_provider, amt, item_ID, prev_seq):
 
     return seq
 
-# def source_item(item_ID, seq):
-#     env = os.environ.copy()
-#     tasks = []
-#
-#     for peer in range(2):
-#         for org in range(1, 3):
-#             cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_sourceItem {peer} {org} {item_ID} {seq}"]
-#             task = subprocess.Popen(cmd, env=env)
-#             tasks.append(task)
-#
-#     for task in tasks:
-#         task.wait()
+def source_item(item_ID, seq):
+    env = os.environ.copy()
+    tasks = []
+
+    for peer in range(2):
+        for org in range(1, 3):
+            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_sourceItemStartLocal {peer} {org} {item_ID} {seq}"]
+            task = subprocess.Popen(cmd, env=env)
+            tasks.append(task)
+
+    for task in tasks:
+        task.wait()
+
+    wait_until_inquiry_committed(item_ID, seq, "finalizeGlobal")
 
 if __name__ == '__main__':
     client = Client.from_toml_config("apps/fabric/conf/config.toml")
 
     item_ID, seq = register_item(1, 10)
-
-    seq = hand_off_item(1, 2, 10, item_ID, seq)
-
-    seq = hand_off_item(2, 3, 4, item_ID, seq)
     #
-    # # item_ID = 0
-    # # seq = 2
-    # source_item(item_ID, seq)
+    # seq = hand_off_item(1, 2, 10, item_ID, seq)
+    #
+    # seq = hand_off_item(2, 3, 4, item_ID, seq)
+    #
+    source_item(item_ID, seq)
+
+
