@@ -138,11 +138,10 @@ if __name__ == '__main__':
     client = Client.from_toml_config("apps/fabric/conf/config.toml")
 
     item_ID, seq = register_item(1, 10)
-    #
-    # seq = hand_off_item(1, 2, 10, item_ID, seq)
-    #
-    # seq = hand_off_item(2, 3, 4, item_ID, seq)
-    #
-    source_item(item_ID, seq)
 
+    seq = hand_off_item(1, 2, 10, item_ID, seq)
+
+    seq = hand_off_item(2, 3, 4, item_ID, seq)
+
+    source_item(item_ID, seq)
 
