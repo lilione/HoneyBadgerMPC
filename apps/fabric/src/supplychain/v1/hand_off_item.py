@@ -51,17 +51,17 @@ def wait_until_shipment_committed(item_ID, seq, state):
             return shipment
 
 async def check_condition():
-    inputmask_share = await client.req_local_mask_share(loca_host, idx_input_provider)
+    inputmask_share = await client.req_local_mask_share(local_host, idx_input_provider)
     share_input_provider = field(masked_input_provider - inputmask_share)
-    share_eq_result = await client.req_eq(loca_host, share_prev_output_provider, share_input_provider)
-    eq_result = await client.req_start_reconstrct(loca_host, share_eq_result)
+    share_eq_result = await client.req_eq(local_host, share_prev_output_provider, share_input_provider)
+    eq_result = await client.req_start_reconstrct(local_host, share_eq_result)
     if eq_result == 0:
         return False
 
-    inputmask_share = await client.req_local_mask_share(loca_host, idx_amt)
+    inputmask_share = await client.req_local_mask_share(local_host, idx_amt)
     share_amt = field(masked_amt - inputmask_share)
-    share_cmp_result = await client.req_cmp(loca_host, share_prev_amt, share_amt)
-    cmp_result = await client.req_start_reconstrct(loca_host, share_cmp_result)
+    share_cmp_result = await client.req_cmp(local_host, share_prev_amt, share_amt)
+    cmp_result = await client.req_start_reconstrct(local_host, share_cmp_result)
     if cmp_result > 0:
         return False
 
@@ -98,10 +98,10 @@ if __name__ == '__main__':
 
     client = Client.from_toml_config('apps/fabric/conf/config.toml')
 
-    loca_host = client.get_local_host()
-    print("host", loca_host)
+    local_host = client.get_local_host()
+    print("host", local_host)
 
-    local_port = client.get_port(loca_host)
+    local_port = client.get_port(local_host)
     print("port", local_port)
 
     local_peer, local_org = client.get_peer_and_org(local_port)

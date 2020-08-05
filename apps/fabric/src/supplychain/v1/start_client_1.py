@@ -6,19 +6,7 @@ import subprocess
 from apps.fabric.src.client.Client import Client
 from apps.fabric.src.supplychain.v1.hand_off_item import wait_until_shipment_committed
 from apps.fabric.src.supplychain.v1.source_item import wait_until_inquiry_committed
-
-def get_inputmask_idx(num, peer=0, org=1):
-    env = os.environ.copy()
-    cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_getInputmaskIdx {peer} {org} {num}"]
-    task = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)
-    task.wait()
-
-    stdout, stderr = task.communicate()
-    for line in stdout.split(b'\n'):
-        line = line.decode("utf-8")
-        print(line)
-        if "payload" in line:
-            return re.split(" ", re.split("payload:\"|\" ", line)[1])
+from apps.fabric.src.utils.utils import get_inputmask_idx
 
 def register_item_global(idx_registrant, idx_amt, peer=0, org=1):
     env = os.environ.copy()
@@ -47,7 +35,7 @@ def register_item_local(item_ID, seq, masked_registrant, masked_amt):
         task.wait()
 
 def register_item(registrant, amt):
-    inputmask_idx = get_inputmask_idx(2)
+    inputmask_idx = get_inputmask_idx(1, 2)
     print("**** inputmask_idx", inputmask_idx)
 
     idx_registrant = inputmask_idx[0]
@@ -95,7 +83,7 @@ def hand_off_item_start_local(idx_input_provider, masked_input_provider, idx_out
         task.wait()
 
 def hand_off_item(input_provider, output_provider, amt, item_ID, prev_seq):
-    inputmask_idx = get_inputmask_idx(3)
+    inputmask_idx = get_inputmask_idx(1, 3)
     print("**** inputmask_idx", inputmask_idx)
     
     seq = hand_off_item_start_global(item_ID, prev_seq)
