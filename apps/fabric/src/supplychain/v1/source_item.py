@@ -33,7 +33,7 @@ def wait_until_inquiry_committed(item_ID, seq, state):
         inquiry = None
         for peer in range(2):
             for org in range(1, 3):
-                inquiry = query_inquiry(item_ID, seq)
+                inquiry = query_inquiry(item_ID, seq, peer, org)
                 print(peer, org, inquiry)
                 if inquiry == None or inquiry['State'] != state:
                     ok = False

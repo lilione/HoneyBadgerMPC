@@ -15,6 +15,9 @@ class Commitment:
 
         return C.__getstate__().hex(), r
 
+    def check_commit(self, x, r, C):
+        return pow(self.g, x) * pow(self.h, r) == C
+
     def prove(self, x, r1, r2):
         k = ZR.random()
         k1 = ZR.random()

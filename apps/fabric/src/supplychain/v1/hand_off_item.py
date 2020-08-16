@@ -38,7 +38,7 @@ def wait_until_shipment_committed(item_ID, seq, state):
         shipment = None
         for peer in range(2):
             for org in range(1, 3):
-                shipment = query_shipment(item_ID, seq)
+                shipment = query_shipment(item_ID, seq, peer, org)
                 print(peer, org, shipment)
                 if shipment == None or shipment['State'] != state:
                     ok = False
