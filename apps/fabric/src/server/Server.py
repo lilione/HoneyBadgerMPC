@@ -1,6 +1,5 @@
 import asyncio
-import logging
-import time
+# import logging
 
 from aiohttp import web
 from honeybadgermpc.elliptic_curve import Subgroup
@@ -51,12 +50,13 @@ class Server:
 
         self.epoch = 0
 
-        # pp_elements = PreProcessedElements()
-        # if self.node_id == 0:
-        #     pp_elements.generate_share_bits(1, self.n, self.t)
-        #     pp_elements.generate_triples(200, self.n, self.t)
-        #     pp_elements.generate_bits(200, self.n, self.t)
-        #     pp_elements.generate_rands(100, self.n, self.t)
+        mul = 100
+        pp_elements = PreProcessedElements()
+        if self.node_id == 0:
+            pp_elements.generate_share_bits(1 * mul, self.n, self.t)
+            pp_elements.generate_triples(200 * mul, self.n, self.t)
+            pp_elements.generate_bits(200 * mul, self.n, self.t)
+            pp_elements.generate_rands(100 * mul, self.n, self.t)
 
     async def gen_inputmasks(self):
         k = 1
@@ -69,34 +69,34 @@ class Server:
                 await asyncio.sleep(10)
 
             # Run Randousha
-            logging.info(
-                f"[{self.node_id}] len(inputmasks): {len(self.inputmasks)} \
-                used_inputmasks: {self.max_inputmask_idx} \
-                target: {target} Initiating Randousha {k * (self.n - 2 * self.t)}"
-            )
+            # logging.info(
+            #     f"[{self.node_id}] len(inputmasks): {len(self.inputmasks)} \
+            #     used_inputmasks: {self.max_inputmask_idx} \
+            #     target: {target} Initiating Randousha {k * (self.n - 2 * self.t)}"
+            # )
             send, recv = self.get_send_recv(f"preproc:inputmasks {preproc_round}")
             rs_t, rs_2t = zip(*await randousha(self.n, self.t, k, self.node_id, send, recv, field))
             assert len(rs_t) == len(rs_2t) == k * (self.n - 2 * self.t)
 
-            print(rs_t)
+            # print(rs_t)
             self.inputmasks += rs_t
 
             preproc_round += 1
 
     async def reconstruction(self, share):
         async def prog(ctx):
-            logging.info(f"[{ctx.myid}] Running MPC network")
+            # logging.info(f"[{ctx.myid}] Running MPC network")
             msg_share = ctx.Share(share)
             opened_value = await msg_share.open()
             return opened_value
 
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
-        logging.info(f"[{self.node_id}] MPC initiated reconstruction:{self.epoch}")
+        # logging.info(f"[{self.node_id}] MPC initiated reconstruction:{self.epoch}")
         config = {}
         ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
         result = await ctx._run()
-        logging.info(f"[{self.node_id}] MPC complete {result}")
+        # logging.info(f"[{self.node_id}] MPC complete {result}")
 
         return result
 
@@ -106,13 +106,13 @@ class Server:
 
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
-        logging.info(f"[{self.node_id}] MPC initiated cmp:{self.epoch}")
+        # logging.info(f"[{self.node_id}] MPC initiated cmp:{self.epoch}")
         config = {}
         for mixin in STANDARD_ARITHMETIC_MIXINS:
             config[mixin.name] = mixin
         ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
         result = await ctx._run()
-        logging.info(f"[{self.node_id}] MPC complete {result}")
+        # logging.info(f"[{self.node_id}] MPC complete {result}")
 
         return result
 
@@ -122,13 +122,13 @@ class Server:
 
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
-        logging.info(f"[{self.node_id}] MPC initiated eq:{self.epoch}")
+        # logging.info(f"[{self.node_id}] MPC initiated eq:{self.epoch}")
         config = {}
         for mixin in STANDARD_ARITHMETIC_MIXINS:
             config[mixin.name] = mixin
         ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
         result = await ctx._run()
-        logging.info(f"[{self.node_id}] MPC complete {result}")
+        # logging.info(f"[{self.node_id}] MPC complete {result}")
 
         return result
 
@@ -138,13 +138,13 @@ class Server:
 
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
-        logging.info(f"[{self.node_id}] MPC initiated mul:{self.epoch}")
+        # logging.info(f"[{self.node_id}] MPC initiated mul:{self.epoch}")
         config = {}
         for mixin in STANDARD_ARITHMETIC_MIXINS:
             config[mixin.name] = mixin
         ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
         result = await ctx._run()
-        logging.info(f"[{self.node_id}] MPC complete {result}")
+        # logging.info(f"[{self.node_id}] MPC complete {result}")
 
         return result
 
@@ -154,13 +154,13 @@ class Server:
 
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
-        logging.info(f"[{self.node_id}] MPC initiated one_minus_share:{self.epoch}")
+        # logging.info(f"[{self.node_id}] MPC initiated one_minus_share:{self.epoch}")
         config = {}
         for mixin in STANDARD_ARITHMETIC_MIXINS:
             config[mixin.name] = mixin
         ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
         result = await ctx._run()
-        logging.info(f"[{self.node_id}] MPC complete {result}")
+        # logging.info(f"[{self.node_id}] MPC complete {result}")
 
         return result
 
@@ -170,13 +170,13 @@ class Server:
 
         self.epoch += 1
         send, recv = self.get_send_recv(f"mpc:{self.epoch}")
-        logging.info(f"[{self.node_id}] MPC initiated add:{self.epoch}")
+        # logging.info(f"[{self.node_id}] MPC initiated add:{self.epoch}")
         config = {}
         for mixin in STANDARD_ARITHMETIC_MIXINS:
             config[mixin.name] = mixin
         ctx = Mpc(f"mpc:{self.epoch}", self.n, self.t, self.node_id, send, recv, prog, config)
         result = await ctx._run()
-        logging.info(f"[{self.node_id}] MPC complete {result}")
+        # logging.info(f"[{self.node_id}] MPC complete {result}")
 
         return result
 
@@ -191,7 +191,7 @@ class Server:
 
         @routes.get("/inputmasks/{mask_idx}")
         async def _handler(request):
-            print(request)
+            # print(request)
             mask_idx = int(request.match_info.get("mask_idx"))
             self.max_inputmask_idx = max(mask_idx, self.max_inputmask_idx)
             await self.enough_mask(mask_idx)
@@ -202,12 +202,12 @@ class Server:
         
         @routes.get(("/start_reconstruction/{share}"))
         async def _handler(request):
-            print("request", request)
+            # print("request", request)
             share = int(request.match_info.get("share")[1:-1])
-            print("share", share)
+            # print("share", share)
             
             res = await self.reconstruction(share)
-            print(res)
+            # print(res)
 
             data = {
                 "value": int(res),
@@ -216,14 +216,14 @@ class Server:
 
         @routes.get(("/cmp/{share_a}+{share_b}"))
         async def _handler(request):
-            print("request", request)
+            # print("request", request)
             share_a = int(request.match_info.get("share_a")[1:-1])
             share_b = int(request.match_info.get("share_b")[1:-1])
-            print("share_a", share_a)
-            print("share_b", share_b)
+            # print("share_a", share_a)
+            # print("share_b", share_b)
 
             res = await self.cmp(share_a, share_b)
-            print(res)
+            # print(res)
 
             data = {
                 "result": str(res),
@@ -232,14 +232,14 @@ class Server:
 
         @routes.get(("/eq/{share_a}+{share_b}"))
         async def _handler(request):
-            print("request", request)
+            # print("request", request)
             share_a = int(request.match_info.get("share_a")[1:-1])
             share_b = int(request.match_info.get("share_b")[1:-1])
-            print("share_a", share_a)
-            print("share_b", share_b)
+            # print("share_a", share_a)
+            # print("share_b", share_b)
 
             res = await self.eq(share_a, share_b)
-            print(res)
+            # print(res)
 
             data = {
                 "result": str(res),
@@ -248,14 +248,14 @@ class Server:
 
         @routes.get(("/mul/{share_a}+{share_b}"))
         async def _handler(request):
-            print("request", request)
+            # print("request", request)
             share_a = int(request.match_info.get("share_a")[1:-1])
             share_b = int(request.match_info.get("share_b")[1:-1])
-            print("share_a", share_a)
-            print("share_b", share_b)
+            # print("share_a", share_a)
+            # print("share_b", share_b)
 
             res = await self.mul(share_a, share_b)
-            print(res)
+            # print(res)
 
             data = {
                 "result": str(res),
@@ -264,12 +264,12 @@ class Server:
 
         @routes.get(("/one_minus_share/{share}"))
         async def _handler(request):
-            print("request", request)
+            # print("request", request)
             share = int(request.match_info.get("share")[1:-1])
-            print("share", share)
+            # print("share", share)
 
             res = await self.one_minus_share(share)
-            print(res)
+            # print(res)
 
             data = {
                 "result": str(res),
@@ -278,14 +278,14 @@ class Server:
 
         @routes.get(("/add/{share_a}+{share_b}"))
         async def _handler(request):
-            print("request", request)
+            # print("request", request)
             share_a = int(request.match_info.get("share_a")[1:-1])
             share_b = int(request.match_info.get("share_b")[1:-1])
-            print("share_a", share_a)
-            print("share_b", share_b)
+            # print("share_a", share_a)
+            # print("share_b", share_b)
 
             res = await self.add(share_a, share_b)
-            print(res)
+            # print(res)
 
             data = {
                 "result": str(res),
@@ -298,7 +298,7 @@ class Server:
         await runner.setup()
         site = web.TCPSite(runner, host=self.host, port=self.http_port)
         await site.start()
-        logging.info(f"======= Serving on http://{self.host}:{self.http_port}/ ======")
+        # logging.info(f"======= Serving on http://{self.host}:{self.http_port}/ ======")
         # pause here for very long time by serving HTTP requests and
         # waiting for keyboard interruption
         await asyncio.sleep(100 * 3600)

@@ -34,7 +34,7 @@ def wait_until_inquiry_committed(item_ID, seq, state):
         for peer in range(2):
             for org in range(1, 3):
                 inquiry = query_inquiry(item_ID, seq, peer, org)
-                print(peer, org, inquiry)
+                # print(peer, org, inquiry)
                 if inquiry == None or inquiry['State'] != state:
                     ok = False
                 if not ok:
@@ -42,7 +42,7 @@ def wait_until_inquiry_committed(item_ID, seq, state):
             if not ok:
                 break
         if ok:
-            print(inquiry)
+            # print(inquiry)
             return inquiry
 
 def source_item_finalize_global(item_ID, seq, list_input_provider_json, peer=0, org=1):
@@ -61,19 +61,24 @@ if __name__ == '__main__':
     client = Client.from_toml_config('apps/fabric/conf/config.toml')
 
     local_host = client.get_local_host()
-    print('local_host', local_host)
+    # print('local_host', local_host)
 
-
-    print(shares)
-    print(len(shares))
-    print(re.split(',', shares))
+    # print(shares)
+    # print(len(shares))
+    # print(re.split(',', shares))
+    cnt = 0
+    start_time = time.perf_counter()
     list_input_provider = ''
     if len(shares) > 0:
         for share_input_provider in re.split(',', shares):
+            cnt += 1
             input_provider = asyncio.run(client.req_start_reconstrct(local_host, share_input_provider))
-            print('input_provider', input_provider)
+            # print('input_provider', input_provider)
             list_input_provider += str(input_provider) + ','
 
     list_input_provider = list_input_provider[:-1]
+    end_time = time.perf_counter()
+    with open("./time_source_item.log", 'a') as file:
+        file.write(f"{cnt} {end_time - start_time}\n")
 
     source_item_finalize_global(item_ID, seq, list_input_provider)

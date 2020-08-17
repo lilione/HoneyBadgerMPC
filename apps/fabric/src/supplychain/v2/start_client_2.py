@@ -57,7 +57,7 @@ def hand_off_item_to_next_provider(input_provider, output_provider, item_id, pre
     print(f"**** input_provider {input_provider} output_provider {output_provider}")
     wait_until_shipment_committed(item_id, prev_seq)
 
-    start_time = time.clock()
+    start_time = time.perf_counter()
 
     input_provider = ZR(input_provider)
     output_provider = ZR(output_provider)
@@ -66,7 +66,7 @@ def hand_off_item_to_next_provider(input_provider, output_provider, item_id, pre
     proof = Commitment().prove(input_provider, prev_r, cur_r)
     commit_output_provider, r = Commitment().commit(output_provider)
 
-    end_time = time.clock()
+    end_time = time.perf_counter()
 
     prove_time = end_time - start_time
 
