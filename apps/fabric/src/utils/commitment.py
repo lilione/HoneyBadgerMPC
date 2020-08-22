@@ -15,7 +15,9 @@ class Commitment:
 
         return C.__getstate__().hex(), r
 
-    def check_commit(self, x, r, C):
+    def check_commit(self, x, r, _C):
+        C = G1()
+        C.__setstate__(bytes.fromhex(_C))
         return pow(self.g, x) * pow(self.h, r) == C
 
     def prove(self, x, r1, r2):
