@@ -1,0 +1,3 @@
+[submodule "apps/fabric/src/libsnark/depends/libsnark"]
+	path = apps/fabric/src/libsnark/depends/libsnark
+	url = https://github.com/scipr-lab/libsnark.git
