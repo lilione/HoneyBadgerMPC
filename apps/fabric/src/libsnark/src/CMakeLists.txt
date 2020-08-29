@@ -4,6 +4,7 @@ add_executable(
   prove
 
   prove.cpp
+  random.cpp
 )
 target_link_libraries(
   prove

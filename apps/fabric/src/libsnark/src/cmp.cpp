@@ -17,31 +17,6 @@ void print_buffer_t(const buffer_t* buf) {
     printf("\n");
 }
 
-template <mp_size_t Q, typename ppT, typename G1, typename G2>
-std::string serializeVerificationKey(const r1cs_se_ppzksnark_verification_key<ppT>* vk)
-{
-    std::stringstream ss;
-    unsigned queryLength = vk->query.size();
-
-    ss << "{";
-    ss << "\"h\":" << outputPointG2AffineAsHexJson<Q, G2>(vk->H) << ",";
-    ss << "\"g_alpha\":" << outputPointG1AffineAsHexJson<Q, G1>(vk->G_alpha) << ",";
-    ss << "\"h_beta\":" << outputPointG2AffineAsHexJson<Q, G2>(vk->H_beta) << ",";
-    ss << "\"g_gamma\":" << outputPointG1AffineAsHexJson<Q, G1>(vk->G_gamma) << ",";
-    ss << "\"h_gamma\":" << outputPointG2AffineAsHexJson<Q, G2>(vk->H_gamma) << ",";
-    ss << "\"query\":[";
-    for (size_t i = 0; i < queryLength; ++i) {
-        if (i != 0)
-            ss << ",";
-        ss << outputPointG1AffineAsHexJson<Q, G1>(vk->query[i]);
-    }
-    ss << "],";
-    ss << "\"raw\":\"" << encodeToHexString<2>(serialize(*vk)) << "\"";
-    ss << "}";
-    std::string str = ss.str();
-    return str;
-}
-
 int main () {
     typedef libff::Fr<default_r1cs_se_ppzksnark_pp> FieldT;
 

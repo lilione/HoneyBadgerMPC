@@ -1,12 +1,13 @@
-#include <libsnark/common/default_types/r1cs_se_ppzksnark_pp.hpp>
-#include <libsnark/zk_proof_systems/ppzksnark/r1cs_se_ppzksnark/r1cs_se_ppzksnark.hpp>
-#include <libsnark/gadgetlib1/pb_variable.hpp>
-#include <libsnark/gadgetlib1/gadgets/basic_gadgets.hpp>
+#include <libff/common/default_types/ec_pp.hpp>
+#include <libsnark/zk_proof_systems/ppzksnark/r1cs_ppzksnark/r1cs_ppzksnark.hpp>
 
 #include "util.tcc"
 
+using namespace libff;
 using namespace libsnark;
 using namespace std;
+
+typedef libff::Fr<default_ec_pp> FieldT;
 
 int fromChar(char c) {
     if (c >= '0' && c <= '9') {
@@ -35,24 +36,30 @@ buffer_t readBuffer(const char* str) {
 }
 
 int main (int argc, char *argv[]) {
-    typedef libff::Fr<default_r1cs_se_ppzksnark_pp> FieldT;
-
-    // Initialize the curve parameters
-    default_r1cs_se_ppzksnark_pp::init_public_params();
-
-    r1cs_se_ppzksnark_verification_key<default_r1cs_se_ppzksnark_pp> vk;
-    r1cs_se_ppzksnark_proof<default_r1cs_se_ppzksnark_pp> proof;
-    r1cs_se_ppzksnark_primary_input<default_r1cs_se_ppzksnark_pp> primary_input;
+    default_ec_pp::init_public_params();
 
     buffer_t vk_buf = readBuffer(argv[1]);
     buffer_t proof_buf = readBuffer(argv[2]);
 
-    fromBuffer<r1cs_se_ppzksnark_verification_key<default_r1cs_se_ppzksnark_pp>>(&vk_buf, vk);
-    fromBuffer<r1cs_se_ppzksnark_proof<default_r1cs_se_ppzksnark_pp>>(&proof_buf, proof);
+    std::vector<buffer_t> buf_commitments;
+    for (int i = 3; i < 7; i++) {
+        buf_commitments.push_back(readBuffer(argv[i]));
+    }
 
- // verify
-    bool verified = r1cs_se_ppzksnark_verifier_strong_IC<default_r1cs_se_ppzksnark_pp>(vk, primary_input, proof);
+    r1cs_ppzksnark_verification_key<default_ec_pp> vk;
+    r1cs_ppzksnark_proof<default_ec_pp> proof;
+    r1cs_ppzksnark_primary_input<default_ec_pp> commitments;
 
+    fromBuffer<r1cs_ppzksnark_verification_key<default_ec_pp>>(&vk_buf, vk);
+    fromBuffer<r1cs_ppzksnark_proof<default_ec_pp>>(&proof_buf, proof);
+
+    for (int i = 0; i < buf_commitments.size(); i++) {
+        FieldT commit;
+        fromBuffer<FieldT>(&buf_commitments[i], commit);
+        commitments.push_back(commit);
+    }
+
+    bool verified = r1cs_ppzksnark_verifier_strong_IC<default_ec_pp>(vk, commitments, proof);
     cout << "Verification status: " << verified << endl;
 
     return 0;

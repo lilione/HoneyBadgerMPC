@@ -14,15 +14,6 @@ using namespace unitn_crypto_fintech;
 
 typedef libff::Fr<default_ec_pp> FieldT;
 
-void printBuffer(const buffer_t* buf) {
-    int32_t len = buf->length;
-    for (int32_t i = 0; i < len; i++) {
-        printf("%02X", buf->data[i]);
-    }
-
-    printf(" ");
-}
-
 int main (int argc, char *argv[]) {
     default_ec_pp::init_public_params();
 
@@ -69,24 +60,34 @@ int main (int argc, char *argv[]) {
 
     const r1cs_ppzksnark_proof<default_ec_pp> proof = r1cs_ppzksnark_prover<default_ec_pp>(keypair.pk, commitments, pb.auxiliary_input());
 
+    buffer_t vk_buf = createBuffer(keypair.vk);
+    buffer_t proof_buf = createBuffer(proof);
+    std::vector<buffer_t> buf_commitments;
+
+    for (int i = 0; i < commitments.size(); i++) {
+        buf_commitments.push_back(createBuffer(commitments[i]));
+    }
+
+    r1cs_ppzksnark_verification_key<default_ec_pp> new_vk;
+    r1cs_ppzksnark_proof<default_ec_pp> new_proof;
+    r1cs_ppzksnark_primary_input<default_ec_pp> new_commitments;
+
+    fromBuffer<r1cs_ppzksnark_verification_key<default_ec_pp>>(&vk_buf, new_vk);
+    fromBuffer<r1cs_ppzksnark_proof<default_ec_pp>>(&proof_buf, new_proof);
+
+    for (int i = 0; i < buf_commitments.size(); i++) {
+        FieldT commit;
+        fromBuffer<FieldT>(&buf_commitments[i], commit);
+        new_commitments.push_back(commit);
+    }
+
     bool verified = r1cs_ppzksnark_verifier_strong_IC<default_ec_pp>(keypair.vk, commitments, proof);
 
     cout << "Verification status: " << verified << endl;
 
-    printf("result ");
+    verified = r1cs_ppzksnark_verifier_strong_IC<default_ec_pp>(new_vk, new_commitments, new_proof);
 
-    buffer_t vk_buf = createBuffer(keypair.vk);
-    printBuffer(&vk_buf);
-
-    buffer_t proof_buf = createBuffer(proof);
-    printBuffer(&proof_buf);
-
-    for (int i = 0; i < commitments.size(); i++) {
-        buffer_t buf_com = createBuffer(commitments[i]);
-        printBuffer(&buf_com);
-    }
-
-    printf("\n");
+    cout << "Verification status: " << verified << endl;
 
     return 0;
 }
