@@ -61,7 +61,6 @@ if __name__ == '__main__':
     client = Client.from_toml_config('apps/fabric/conf/config.toml')
 
     local_host = client.get_local_host()
-    # print('local_host', local_host)
 
     # print(shares)
     # print(len(shares))
@@ -79,6 +78,6 @@ if __name__ == '__main__':
     list_input_provider = list_input_provider[:-1]
     end_time = time.perf_counter()
     with open("./time_source_item.log", 'a') as file:
-        file.write(f"{cnt} {end_time - start_time}\n")
+        file.write(f"{1. * (end_time - start_time) / cnt}\n")
 
     source_item_finalize_global(item_ID, seq, list_input_provider)

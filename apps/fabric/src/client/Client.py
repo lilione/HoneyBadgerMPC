@@ -68,6 +68,8 @@ class Client:
         # )
 
         url = f"http://{host}:{port}/start_reconstruction/{share}"
+        # with open("./log.txt", 'a') as file:
+        #     file.write(url + '\n')
         result = await self.send_request(host, port, url)
         return result["value"]
 
@@ -80,6 +82,8 @@ class Client:
         # )
 
         url = f"http://{host}:{port}/cmp/{share_a}+{share_b}"
+        # with open("./log.txt", 'a') as file:
+        #     file.write(url + '\n')
         result = await self.send_request(host, port, url)
         return result["result"]
 
@@ -92,6 +96,8 @@ class Client:
         # )
 
         url = f"http://{host}:{port}/eq/{share_a}+{share_b}"
+        # with open("./log.txt", 'a') as file:
+        #     file.write(url + '\n')
         result = await self.send_request(host, port, url)
         return result["result"]
 

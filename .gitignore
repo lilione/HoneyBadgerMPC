@@ -147,3 +147,4 @@ sharedata/
 apps/fabric/log/
 log.txt
 apps/fabric/src/libsnark/depends/
+error.txt
