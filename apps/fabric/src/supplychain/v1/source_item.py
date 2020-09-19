@@ -8,6 +8,10 @@ import time
 
 from apps.fabric.src.client.Client import Client
 
+def write_to_log(st):
+    with open(log_file, 'a') as file:
+        file.write(st + '\n')
+
 def query_inquiry(item_ID, seq, peer=0, org=1):
     env = os.environ.copy()
     cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_queryInquiry {peer} {org} {item_ID} {seq}"]
@@ -48,10 +52,14 @@ def wait_until_inquiry_committed(item_ID, seq, state):
 def source_item_finalize_global(item_ID, seq, list_input_provider_json, peer=0, org=1):
     wait_until_inquiry_committed(item_ID, seq, "startLocal")
 
+    write_to_log(f"start source_item_finalize_global: {time.perf_counter()}")
+
     env = os.environ.copy()
     cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_sourceItemFinalizeGlobal {peer} {org} {item_ID} {seq} {list_input_provider_json}"]
     task = subprocess.Popen(cmd, env=env)
     task.wait()
+
+    write_to_log(f"end source_item_finalize_global: {time.perf_counter()}")
 
 if __name__ == '__main__':
     item_ID = sys.argv[1]
@@ -61,6 +69,13 @@ if __name__ == '__main__':
     client = Client.from_toml_config('apps/fabric/conf/config.toml')
 
     local_host = client.get_local_host()
+    local_port = client.get_port(local_host)
+    local_peer, local_org = client.get_peer_and_org(local_port)
+
+    log_file = f"./log_source_item_peer{local_peer}_org{local_org}.txt"
+
+    write_to_log(f"start source_item: {time.perf_counter()}")
+    write_to_log(f"shares {shares}")
 
     # print(shares)
     # print(len(shares))
@@ -71,6 +86,7 @@ if __name__ == '__main__':
     if len(shares) > 0:
         for share_input_provider in re.split(',', shares):
             cnt += 1
+            write_to_log(f"recon {share_input_provider}")
             input_provider = asyncio.run(client.req_start_reconstrct(local_host, share_input_provider))
             # print('input_provider', input_provider)
             list_input_provider += str(input_provider) + ','

@@ -2,6 +2,14 @@ import os
 import re
 import subprocess
 
+def del_file(f):
+    if os.path.exists(f):
+        os.remove(f)
+
+def write_to_log(file, s):
+    with open(file, 'a') as file:
+        file.write(s + '\n')
+
 def get_inputmask_idx(version, num, peer=0, org=1):
     env = os.environ.copy()
     cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh {version}_getInputmaskIdx {peer} {org} {num}"]

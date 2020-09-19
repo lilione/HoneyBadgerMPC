@@ -1,6 +1,6 @@
 import asyncio
 import sys
-import toml
+import time
 
 from apps.fabric.src.client.Client import Client
 from honeybadgermpc.elliptic_curve import Subgroup
@@ -8,32 +8,28 @@ from honeybadgermpc.field import GF
 
 field = GF(Subgroup.BLS12_381)
 
-def create_client(config_file):
-    config = toml.load(config_file)
-
-    n = config['n']
-    t = config['t']
-    servers = config["servers"]
-
-    return Client(n, t, servers)
-
-def get_local_host():
-    file = open('/etc/hosts', 'r')
-    lines = file.readlines()
-    line = lines[6]
-    return line.split('\t')[0]
+def write_to_log(st):
+    with open(log_file, 'a') as file:
+        file.write(st + '\n')
 
 if __name__ == '__main__':
     inputmask_idx = sys.argv[1]
     masked_input = int(sys.argv[2])
 
-    client = create_client('apps/fabric/conf/config.toml')
+    client = Client.from_toml_config('apps/fabric/conf/config.toml')
 
-    host = get_local_host()
-    print(host)
+    local_host = client.get_local_host()
+    local_port = client.get_port(local_host)
+    local_peer, local_org = client.get_peer_and_org(local_port)
 
-    inputmask_share = asyncio.run(client.req_local_mask_share(host, inputmask_idx))
+    log_file = f"./log_calc_share_peer{local_peer}_org{local_org}.txt"
+
+    write_to_log(f"start calc_share: {time.perf_counter()}")
+
+    inputmask_share = asyncio.run(client.req_local_mask_share(local_host, inputmask_idx))
 
     share = field(masked_input - inputmask_share)
-    
+
+    write_to_log(f"end calc_share: {time.perf_counter()}")
+
     print("share", share)
