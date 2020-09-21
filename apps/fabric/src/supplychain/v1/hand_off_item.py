@@ -3,45 +3,30 @@ import os
 import re
 import subprocess
 import sys
-import time
 
 from apps.fabric.src.client.Client import Client
 from apps.fabric.src.utils.utils import write_to_log
 
-log_file = './log.txt'
-
-def hand_off_item_server_global(data):
+def hand_off_item_server_global(args):
     env = os.environ.copy()
-    cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_handOffItemServerGlobal {local_peer} {local_org} {data}"]
+    cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_handOffItemServerGlobal {local_peer} {local_org} {args}"]
     task = subprocess.Popen(cmd, env=env)
     task.wait()
 
 def check_condition(share_input_provider, share_prev_output_provider, share_amt, share_prev_amt):
-    loop = asyncio.get_event_loop()
-    task = loop.create_task(client.req_eq(local_host, share_prev_output_provider, share_input_provider, f"{item_ID}_{seq}_eq"))
-    loop.run_until_complete(task)
-    share_eq_result = task.result()
-    write_to_log(log_file, f"{local_port} {share_eq_result}")
+    # share_eq_result = asyncio.run(client.req_eq(local_host, local_port, share_prev_output_provider, share_input_provider))
+    # write_to_log(log_file, f"{local_port} {share_eq_result}")
+    #
+    # eq_result = asyncio.run(client.req_recon(local_host, local_port, share_eq_result))
+    # write_to_log(log_file, f"{local_port} {eq_result}")
+    #
+    # if eq_result == 0:
+    #     return False
 
-    # loop = asyncio.get_event_loop()
-    task = loop.create_task(client.req_start_reconstrct(local_host, share_eq_result, f"{item_ID}_{seq}_recon_eq"))
-    loop.run_until_complete(task)
-    eq_result = task.result()
-    write_to_log(log_file, f"{local_port} {eq_result}")
-
-    if eq_result == 0:
-        return False
-
-    # loop = asyncio.get_event_loop()
-    task = loop.create_task(client.req_cmp(local_host, share_prev_amt, share_amt, f"{item_ID}_{seq}_cmp"))
-    loop.run_until_complete(task)
-    share_cmp_result = task.result()
+    share_cmp_result = asyncio.run(client.req_cmp(local_host, local_port, share_prev_amt, share_amt, f"{item_ID}_{seq}_cmp"))
     write_to_log(log_file, f"{local_port} {share_cmp_result}")
 
-    # loop = asyncio.get_event_loop()
-    task = loop.create_task(client.req_start_reconstrct(local_host, share_cmp_result, f"{item_ID}_{seq}_recon_cmp"))
-    loop.run_until_complete(task)
-    cmp_result = task.result()
+    cmp_result = asyncio.run(client.req_recon(local_host, local_port, share_cmp_result, f"{item_ID}_{seq}_cmp_recon"))
     write_to_log(log_file, f"{local_port} {cmp_result}")
 
     if cmp_result > 0:
@@ -51,6 +36,7 @@ def check_condition(share_input_provider, share_prev_output_provider, share_amt,
 
 if __name__ == '__main__':
     data = re.split(' ', sys.argv[1])
+
     para_num = 6
     batch = len(data) // para_num
 
@@ -59,6 +45,8 @@ if __name__ == '__main__':
     local_host = client.get_local_host()
     local_port = client.get_port(local_host)
     local_peer, local_org = client.get_peer_and_org(local_port)
+
+    log_file = f"./apps/fabric/log/exec/log_hand_off_item_peer{local_peer}_org{local_org}.txt"
 
     args = ""
     for i in range(batch):

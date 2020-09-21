@@ -31,18 +31,17 @@ if __name__ == '__main__':
     masked_a = a + mask[0]
     masked_b = b + mask[1]
 
-    for i in range(10):
-        t = time.perf_counter()
-        cmp_result_shares = asyncio.run(client.test_cmp(shares, 0, masked_a, 1, masked_b))
-        print("cmp_result_shares", cmp_result_shares, "time", time.perf_counter() - t)
-        t = time.perf_counter()
-        res = asyncio.run(client.test_recon(cmp_result_shares))
-        print("cmp_result", res, "time", time.perf_counter() - t)
+    for i in range(40):
+        # t = time.perf_counter()
+        # cmp_result_shares = asyncio.run(client.test_cmp(shares, 0, masked_a, 1, masked_b, f"cmp_{i}"))
+        # print("cmp_result_shares", cmp_result_shares, "time", time.perf_counter() - t)
+        # t = time.perf_counter()
+        # res = asyncio.run(client.test_recon(cmp_result_shares, f"recon_cmp_{i}"))
+        # print("cmp_result", res, "time", time.perf_counter() - t)
 
         t = time.perf_counter()
-        eq_result_shares = asyncio.run(client.test_eq(shares, 0, masked_a, 1, masked_b))
+        eq_result_shares = asyncio.run(client.test_eq(shares, 0, masked_a, 1, masked_b, f"eq_{i}"))
         print("eq_result_shares", eq_result_shares, "time", time.perf_counter() - t)
         t = time.perf_counter()
-        res = asyncio.run(client.test_recon(eq_result_shares))
+        res = asyncio.run(client.test_recon(eq_result_shares, f"recon_eq_{i}"))
         print("eq_result", res, "time", time.perf_counter() - t)
-

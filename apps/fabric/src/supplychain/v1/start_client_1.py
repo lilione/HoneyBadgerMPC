@@ -6,9 +6,7 @@ import subprocess
 import time
 
 from apps.fabric.src.client.Client import Client
-from apps.fabric.src.supplychain.v1.source_item import wait_until_inquiry_committed
-from apps.fabric.src.utils.utils import get_inputmask_idx
-from apps.fabric.src.utils.utils import del_file
+from apps.fabric.src.utils.utils import get_inputmask_idx, clear_dir
 
 def query_shipment(item_ID, seq, peer=0, org=1):
     env = os.environ.copy()
@@ -46,6 +44,43 @@ def wait_until_shipment_committed(item_ID, seq, state):
         if ok:
             print(shipment)
             return shipment
+
+def query_inquiry(item_ID, seq, peer=0, org=1):
+    env = os.environ.copy()
+    cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_queryInquiry {peer} {org} {item_ID} {seq}"]
+    task = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)
+    task.wait()
+
+    stdout, stderr = task.communicate()
+    for line in stdout.split(b'\n'):
+        line = line.decode("utf-8")
+        if "payload" in line:
+            list = re.split("payload:\"|\" ", line)
+            inquiry_json = "\"" + list[1] + "\""
+            inquiry_str = json.loads(inquiry_json)
+            inquiry = json.loads(inquiry_str)
+            return inquiry
+
+    return None
+
+def wait_until_inquiry_committed(item_ID, seq, state):
+    while True:
+        time.sleep(1)
+        ok = True
+        inquiry = None
+        for peer in range(2):
+            for org in range(1, 3):
+                inquiry = query_inquiry(item_ID, seq, peer, org)
+                # print(peer, org, inquiry)
+                if inquiry == None or inquiry['State'] != state:
+                    ok = False
+                if not ok:
+                    break
+            if not ok:
+                break
+        if ok:
+            print(inquiry)
+            return inquiry
 
 def register_item_global(args, peer=0, org=1):
     env = os.environ.copy()
@@ -117,7 +152,6 @@ def hand_off_item_client_global(args, peer=0, org=1):
     stdout, stderr = task.communicate()
     for line in stdout.split(b'\n'):
         line = line.decode("utf-8")
-        # print(line)
         if "payload" in line:
             return re.split(" ", re.split("payload:\"|\" ", line)[1])
         
@@ -171,34 +205,28 @@ def hand_off_item(batch, list_item_ID, list_seq, input_provider, output_provider
 
     return list_seq
 
-def source_item(item_ID, seq):
-    start_time = time.perf_counter()
+def source_item(batch, list_item_ID, list_seq):
+    args = ""
+    for i in range(batch):
+        args += f"{',' if i > 0 else ''}{list_item_ID[i]},{list_seq[i]}"
+
     env = os.environ.copy()
     tasks = []
 
-    print("@", time.perf_counter())
     for peer in range(2):
         for org in range(1, 3):
-            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_sourceItemStartLocal {peer} {org} {item_ID} {seq}"]
+            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_sourceItemClientLocal {peer} {org} {args}"]
             task = subprocess.Popen(cmd, env=env)
             tasks.append(task)
 
     for task in tasks:
         task.wait()
-    print("@", time.perf_counter())
 
-    wait_until_inquiry_committed(item_ID, seq, "finalizeGlobal")
-    print("@", time.perf_counter())
-    end_time = time.perf_counter()
-    return end_time - start_time
-
-def del_file(f):
-    if os.path.exists(f):
-        os.remove(f)
+    for (item_ID, seq) in zip(list_item_ID, list_seq):
+        wait_until_inquiry_committed(item_ID, seq, "SETTLE")
 
 if __name__ == '__main__':
-    del_file('./log.txt')
-    del_file('./error.txt')
+    clear_dir('apps/fabric/log/exec')
 
     client = Client.from_toml_config("apps/fabric/conf/config.toml")
 
@@ -209,7 +237,7 @@ if __name__ == '__main__':
     repetition = 2
 
     for i in range(1, repetition + 1):
-        seq = hand_off_item(batch, list_item_ID, list_seq, i, i+1, amt)
+        list_seq = hand_off_item(batch, list_item_ID, list_seq, i, i + 1, amt)
 
-    # source_item(item_id, seq)
+    source_item(batch, list_item_ID, list_seq)
 

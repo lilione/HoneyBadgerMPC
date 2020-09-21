@@ -1,14 +1,20 @@
 import os
 import re
+import shutil
 import subprocess
 
-def del_file(f):
-    if os.path.exists(f):
-        os.remove(f)
+def clear_dir(dir):
+    try:
+        shutil.rmtree(dir)
+    except OSError as e:
+        print ("Error: %s - %s." % (e.filename, e.strerror))
+
+    if not os.path.exists(dir):
+        os.makedirs(dir)
 
 def write_to_log(file, s):
     with open(file, 'a') as file:
-        file.write(s + '\n')
+        file.write(f"{s}\n")
 
 def get_inputmask_idx(version, num, peer=0, org=1):
     env = os.environ.copy()
@@ -22,4 +28,3 @@ def get_inputmask_idx(version, num, peer=0, org=1):
         print(line)
         if "payload" in line:
             return re.split(" ", re.split("payload:\"|\" ", line)[1])
-

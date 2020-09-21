@@ -1,8 +1,7 @@
 import asyncio
-# import logging
-import time
 
 from aiohttp import web
+from apps.fabric.src.utils.utils import clear_dir
 from honeybadgermpc.elliptic_curve import Subgroup
 from honeybadgermpc.field import GF
 from honeybadgermpc.mpc import Mpc
@@ -49,17 +48,19 @@ class Server:
         self.inputmasks = []
         self.max_inputmask_idx = 0
 
-        self.epoch = 0
-
-        # mul = 1000
-        # pp_elements = PreProcessedElements()
-        # if self.node_id == 0:
-        #     pp_elements.generate_share_bits(1 * mul, self.n, self.t)
-        #     pp_elements.generate_triples(200 * mul, self.n, self.t)
-        #     pp_elements.generate_bits(200 * mul, self.n, self.t)
-        #     pp_elements.generate_rands(100 * mul, self.n, self.t)
+        # self.preprocess()
 
         print("finished")
+
+    def preprocess(self):
+
+        mul = 100
+        pp_elements = PreProcessedElements()
+        if self.node_id == 0:
+            pp_elements.generate_share_bits(1 * mul, self.n, self.t)
+            pp_elements.generate_triples(200 * mul, self.n, self.t)
+            pp_elements.generate_bits(200 * mul, self.n, self.t)
+            pp_elements.generate_rands(100 * mul, self.n, self.t)
 
     async def gen_inputmasks(self):
         k = 1
@@ -79,15 +80,12 @@ class Server:
 
             preproc_round += 1
 
-    async def reconstruction(self, share):
+    async def reconstruction(self, share, tag):
         async def prog(ctx):
             msg_share = ctx.Share(share)
             opened_value = await msg_share.open()
             return opened_value
 
-        self.epoch += 1
-        tag = f"mpc:{self.epoch}"
-        # tag = "recon"
         send, recv = self.get_send_recv(tag)
         config = {}
         ctx = Mpc(tag, self.n, self.t, self.node_id, send, recv, prog, config)
@@ -95,13 +93,10 @@ class Server:
 
         return result
 
-    async def cmp(self, share_a, share_b):
+    async def cmp(self, share_a, share_b, tag):
         async def prog(ctx):
             return await (await (ctx.Share(share_a) < ctx.Share(share_b)))
 
-        self.epoch += 1
-        tag = f"mpc:{self.epoch}"
-        # tag = "cmp"
         send, recv = self.get_send_recv(tag)
         config = {}
         for mixin in STANDARD_ARITHMETIC_MIXINS:
@@ -111,13 +106,10 @@ class Server:
 
         return result
 
-    async def eq(self, share_a, share_b):
+    async def eq(self, share_a, share_b, tag):
         async def prog(ctx):
             return await (ctx.Share(share_a) == ctx.Share(share_b))
 
-        self.epoch += 1
-        tag = f"mpc:{self.epoch}"
-        # tag = "eq"
         send, recv = self.get_send_recv(tag)
         config = {}
         for mixin in STANDARD_ARITHMETIC_MIXINS:
@@ -136,7 +128,7 @@ class Server:
     async def http_server(self):
         routes = web.RouteTableDef()
 
-        @routes.get("/inputmasks/{mask_idx}")
+        @routes.get("/inputmask/{mask_idx}")
         async def _handler(request):
             mask_idx = int(request.match_info.get("mask_idx"))
             self.max_inputmask_idx = max(mask_idx, self.max_inputmask_idx)
@@ -146,32 +138,35 @@ class Server:
             }
             return web.json_response(data)
         
-        @routes.get(("/start_reconstruction/{share}"))
+        @routes.get(("/start_reconstruction/{share}+{tag}"))
         async def _handler(request):
             share = int(request.match_info.get("share")[1:-1])
-            res = await self.reconstruction(share)
+            tag = request.match_info.get("tag")
+            res = await self.reconstruction(share, tag)
 
             data = {
                 "value": int(res),
             }
             return web.json_response(data)
 
-        @routes.get(("/cmp/{share_a}+{share_b}"))
+        @routes.get(("/cmp/{share_a}+{share_b}+{tag}"))
         async def _handler(request):
             share_a = int(request.match_info.get("share_a")[1:-1])
             share_b = int(request.match_info.get("share_b")[1:-1])
-            res = await self.cmp(share_a, share_b)
+            tag = request.match_info.get("tag")
+            res = await self.cmp(share_a, share_b, tag)
 
             data = {
                 "result": str(res),
             }
             return web.json_response(data)
 
-        @routes.get(("/eq/{share_a}+{share_b}"))
+        @routes.get(("/eq/{share_a}+{share_b}+{tag}"))
         async def _handler(request):
             share_a = int(request.match_info.get("share_a")[1:-1])
             share_b = int(request.match_info.get("share_b")[1:-1])
-            res = await self.eq(share_a, share_b)
+            tag = request.match_info.get("tag")
+            res = await self.eq(share_a, share_b, tag)
 
             data = {
                 "result": str(res),
