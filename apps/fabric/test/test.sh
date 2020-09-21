@@ -1,6 +1,6 @@
 # bash apps/fabric/test/test.sh
 
-#rm -rf sharedata
+rm -rf sharedata
 
 rm -rf apps/fabric/log/server/
 mkdir apps/fabric/log/server/

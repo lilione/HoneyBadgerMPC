@@ -67,14 +67,16 @@ class Equality(AsyncMixin):
     ):
         diff = p_share - q_share
 
-        x = context.ShareArray(
-            await gather(
-                *[
-                    Equality.gen_test_bit(context, diff)
-                    for _ in range(security_parameter)
-                ]
-            )
-        )
+        # x = context.ShareArray(
+        #     await gather(
+        #         *[
+        #             Equality.gen_test_bit(context, diff)
+        #             for _ in range(security_parameter)
+        #         ]
+        #     )
+        # )
+
+        x = context.ShareArray([await Equality.gen_test_bit(context, diff) for _ in range(security_parameter)])
 
         # Take the product (this is here the same as the "and") of all
         return await x.multiplicative_product()

@@ -48,7 +48,7 @@ class Server:
         self.inputmasks = []
         self.max_inputmask_idx = 0
 
-        # self.preprocess()
+        self.preprocess()
 
         print("finished")
 

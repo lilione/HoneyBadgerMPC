@@ -230,11 +230,11 @@ if __name__ == '__main__':
 
     client = Client.from_toml_config("apps/fabric/conf/config.toml")
 
-    batch = 2
+    batch = 6
     amt = 1
     list_item_ID, list_seq = register_item(batch, 1, amt)
 
-    repetition = 2
+    repetition = 5
 
     for i in range(1, repetition + 1):
         list_seq = hand_off_item(batch, list_item_ID, list_seq, i, i + 1, amt)
