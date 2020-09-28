@@ -1,4 +1,5 @@
 import asyncio
+import re
 import toml
 
 from aiohttp import ClientSession
@@ -50,10 +51,10 @@ class Client:
                 json_response = await resp.json()
                 return json_response
 
-    async def req_inputmask_share(self, host, port, inputmask_idx):
-        url = f"http://{host}:{port}/inputmask/{inputmask_idx}"
+    async def req_inputmask_shares(self, host, port, inputmask_idxes):
+        url = f"http://{host}:{port}/inputmasks/{inputmask_idxes}"
         result = await self.send_request(url)
-        return result["inputmask_share"]
+        return re.split(',', result["inputmask_shares"])
 
     async def req_recon(self, host, port, share, tag):
         url = f"http://{host}:{port}/start_reconstruction/{share}+{tag}"
@@ -78,24 +79,29 @@ class Client:
         return mask
 
     # **** call from remote client ****
-    async def get_inputmask(self, inputmask_idx):
+    async def get_inputmasks(self, inputmask_idxes):
         tasks = []
         for server in self.servers:
             host = server["host"]
             port = server["http_port"]
 
-            task = asyncio.ensure_future(self.req_inputmask_share(host, port, inputmask_idx))
+            task = asyncio.ensure_future(self.req_inputmask_shares(host, port, inputmask_idxes))
             tasks.append(task)
 
         for task in tasks:
             await task
 
-        shares = []
+        inputmask_shares = []
         for task in tasks:
-            shares.append(task.result())
+            inputmask_shares.append(task.result())
 
-        mask = self.interpolate(shares)
-        return mask, shares
+        inputmasks = []
+        for i in range(len(tasks[0].result())):
+            shares = []
+            for j in range(len(self.servers)):
+                shares.append(int(inputmask_shares[j][i]))
+            inputmasks.append(self.interpolate(shares))
+        return inputmasks
 
     # **** for local testing ****
     async def test_cmp(self, shares, idx_a, masked_a, idx_b, masked_b, tag):

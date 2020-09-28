@@ -16,7 +16,7 @@ def write_to_log(file, s):
     with open(file, 'a') as file:
         file.write(f"{s}\n")
 
-def get_inputmask_idx(version, num, peer=0, org=1):
+def get_inputmask_idxes(version, num, peer=0, org=1):
     env = os.environ.copy()
     cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh {version}_getInputmaskIdx {peer} {org} {num}"]
     task = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)

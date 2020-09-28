@@ -6,7 +6,7 @@ import subprocess
 import time
 
 from apps.fabric.src.client.Client import Client
-from apps.fabric.src.utils.utils import get_inputmask_idx, clear_dir
+from apps.fabric.src.utils.utils import get_inputmask_idxes, clear_dir
 
 def query_shipment(item_ID, seq, peer=0, org=1):
     env = os.environ.copy()
@@ -84,14 +84,14 @@ def wait_until_inquiry_committed(item_ID, seq, state):
 
 def register_item_global(args, peer=0, org=1):
     env = os.environ.copy()
-    cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_registerItemGlobal {peer} {org} {args}"]
+    cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_registerItemClientGlobal {peer} {org} {args}"]
     task = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)
     task.wait()
 
     stdout, stderr = task.communicate()
     for line in stdout.split(b'\n'):
         line = line.decode("utf-8")
-        print(line)
+        # print(line)
         if "payload" in line:
             return re.split(" ", re.split("payload:\"|\" ", line)[1])
 
@@ -101,7 +101,7 @@ def register_item_local(args):
     tasks = []
     for peer in range(2):
         for org in range(1, 3):
-            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_registerItemLocal {peer} {org} {args}"]
+            cmd = ['docker', 'exec', 'cli', '/bin/bash', '-c', f"export CHANNEL_NAME=mychannel && bash scripts/run_cmd.sh 1_registerItemClientLocal {peer} {org} {args}"]
             task = subprocess.Popen(cmd, env=env)
             tasks.append(task)
 
@@ -111,29 +111,27 @@ def register_item_local(args):
 def register_item(batch, registrant, amt):
     para_num = 2
 
-    inputmask_idx = get_inputmask_idx(1, batch * para_num)
-    print("**** inputmask_idx", inputmask_idx)
+    inputmask_idxes = get_inputmask_idxes(1, batch * para_num)
 
     args = ""
     for i in range(batch):
-        idx_registrant = inputmask_idx[para_num * i]
-        idx_amt = inputmask_idx[para_num * i + 1]
+        idx_registrant, idx_amt = inputmask_idxes[i * para_num : (i + 1) * para_num]
 
         args += f"{',' if i > 0 else ''}{idx_registrant},{idx_amt}"
     res = register_item_global(args)
-    print("**** res", res)
 
-    mask = []
-    for i in inputmask_idx:
-        mask.append(asyncio.run(client.get_inputmask(int(i)))[0])
+    args = ""
+    for i in range(batch * para_num):
+        args += f"{inputmask_idxes[i]},"
+    args = args[:-1]
+    inputmasks = asyncio.run(client.get_inputmasks(args))
 
     args = ""
     for i in range(batch):
         item_ID, seq = res[i * para_num : (i + 1) * para_num]
-        print(f"**** item_id {item_ID} seq {seq}")
 
-        masked_registrant = str(registrant + mask[para_num * i])[1:-1]
-        masked_amt = str(amt + mask[para_num * i + 1])[1:-1]
+        masked_registrant = str(registrant + inputmasks[para_num * i])[1:-1]
+        masked_amt = str(amt + inputmasks[para_num * i + 1])[1:-1]
 
         wait_until_shipment_committed(item_ID, seq, "SETTLE")
 
@@ -170,28 +168,29 @@ def hand_off_item_client_local(args):
 
 def hand_off_item(batch, list_item_ID, list_seq, input_provider, output_provider, amt):
     para_num = 3
-    inputmask_idx = get_inputmask_idx(1, batch * para_num)
-    print("**** inputmask_idx", inputmask_idx)
+    inputmask_idxes = get_inputmask_idxes(1, batch * para_num)
 
     args = ""
     for i in range(batch):
-        idx_input_provider, idx_output_provider, idx_amt = inputmask_idx[i * para_num : (i + 1) * para_num]
+        idx_input_provider, idx_output_provider, idx_amt = inputmask_idxes[i * para_num : (i + 1) * para_num]
 
         args += f"{',' if i > 0 else ''}{list_item_ID[i]},{list_seq[i]},{idx_input_provider},{idx_output_provider},{idx_amt}"
     list_seq = hand_off_item_client_global(args)
 
-    mask = []
-    for i in inputmask_idx:
-        mask.append(asyncio.run(client.get_inputmask(int(i)))[0])
+    args = ""
+    for i in range(batch * para_num):
+        args += f"{inputmask_idxes[i]},"
+    args = args[:-1]
+    inputmasks = asyncio.run(client.get_inputmasks(args))
 
     args = ""
     for i in range(batch):
         item_ID = list_item_ID[i]
         seq = list_seq[i]
 
-        masked_input_provider = str(input_provider + mask[para_num * i])[1:-1]
-        masked_output_provider = str(output_provider + mask[para_num * i + 1])[1:-1]
-        masked_amt = str(amt + mask[para_num * i + 2])[1:-1]
+        masked_input_provider = str(input_provider + inputmasks[para_num * i])[1:-1]
+        masked_output_provider = str(output_provider + inputmasks[para_num * i + 1])[1:-1]
+        masked_amt = str(amt + inputmasks[para_num * i + 2])[1:-1]
 
         wait_until_shipment_committed(item_ID, seq, "READY")
 
@@ -230,11 +229,11 @@ if __name__ == '__main__':
 
     client = Client.from_toml_config("apps/fabric/conf/config.toml")
 
-    batch = 6
+    batch = 20
     amt = 1
     list_item_ID, list_seq = register_item(batch, 1, amt)
 
-    repetition = 5
+    repetition = 2
 
     for i in range(1, repetition + 1):
         list_seq = hand_off_item(batch, list_item_ID, list_seq, i, i + 1, amt)

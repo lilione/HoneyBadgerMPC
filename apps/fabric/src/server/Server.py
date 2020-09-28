@@ -1,4 +1,5 @@
 import asyncio
+import re
 
 from aiohttp import web
 from apps.fabric.src.utils.utils import clear_dir
@@ -48,7 +49,7 @@ class Server:
         self.inputmasks = []
         self.max_inputmask_idx = 0
 
-        self.preprocess()
+        # self.preprocess()
 
         print("finished")
 
@@ -128,13 +129,19 @@ class Server:
     async def http_server(self):
         routes = web.RouteTableDef()
 
-        @routes.get("/inputmask/{mask_idx}")
+        @routes.get("/inputmasks/{mask_idxes}")
         async def _handler(request):
-            mask_idx = int(request.match_info.get("mask_idx"))
-            self.max_inputmask_idx = max(mask_idx, self.max_inputmask_idx)
-            await self.enough_mask(mask_idx)
+            mask_idxes = re.split(',', request.match_info.get("mask_idxes"))
+            res = ''
+            for mask_idx in mask_idxes:
+                mask_idx = int(mask_idx)
+                self.max_inputmask_idx = max(mask_idx, self.max_inputmask_idx)
+                await self.enough_mask(mask_idx)
+                if len(res) > 0:
+                    res += ","
+                res += f"{self.inputmasks[mask_idx]}"
             data = {
-                "inputmask_share": self.inputmasks[mask_idx],
+                "inputmask_shares": res,
             }
             return web.json_response(data)
         

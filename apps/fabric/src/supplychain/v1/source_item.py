@@ -1,4 +1,5 @@
 import asyncio
+import leveldb
 import os
 import re
 import subprocess
@@ -13,6 +14,8 @@ def source_item_server_global(args, peer=0, org=1):
     task.wait()
 
 if __name__ == '__main__':
+    db = leveldb.LevelDB('/opt/db')
+
     data = re.split(' ', sys.argv[1])
 
     para_num = 3
@@ -28,15 +31,16 @@ if __name__ == '__main__':
 
     args = ""
     for i in range(batch):
-        item_ID, seq, list_share_input_provider = data[i * para_num : (i + 1) * para_num]
+        item_ID, seq, list_idx_input_provider = data[i * para_num: (i + 1) * para_num]
         seq = int(seq)
 
         args += f"{',' if i > 0 else ''}{item_ID},{seq},"
 
         list_input_provider = ''
-        if len(list_share_input_provider) > 0:
-            list_share_input_provider = re.split(',', list_share_input_provider)
-            for share_input_provider in list_share_input_provider:
+        if len(list_idx_input_provider) > 0:
+            list_idx_input_provider = re.split(',', list_idx_input_provider)
+            for idx_input_provider in list_idx_input_provider:
+                share_input_provider = db.Get(str.encode(idx_input_provider)).decode()
                 input_provider = asyncio.run(client.req_recon(local_host, local_port, share_input_provider, f"{item_ID}_{seq}_recon"))
                 list_input_provider += f"{'-' if len(list_input_provider) > 0 else ''}{input_provider}"
                 seq -= 1
